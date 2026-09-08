@@ -11,53 +11,65 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify real product parsing and deployment responses
+      - name: Install isolated browser test dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Test actual public website without login or mocked prices
         shell: bash
         run: |
+          mkdir -p acceptance
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
-          const codeUrl='https://raw.githubusercontent.com/paulchen01/Bychen01/b4b18585f709c24ea4ef9a746b58f174e49a48e9/korea-quote/lib/quote.mjs';
-          const codeResponse=await fetch(codeUrl,{signal:AbortSignal.timeout(15000)});
-          assert.equal(codeResponse.status,200);
-          const code=await codeResponse.text();
-          const {normalize,parseReader,calculate,VERSION}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
-          const userUrl='https://m.bunjang.co.kr/products/405399188?imp_id=6a9e6a9fc7d000000032&ref_code=%22%7B%5C%22cntr%5C%22%3A%5C%22BPC001%3AALL_ALL_P_1%5C%22%2C%5C%22pos%5C%22%3A%5C%220%5C%22%7D%22&ref_content=BPC001%3AALL_ALL_P_1';
-          assert.equal(normalize(userUrl).url,'https://m.bunjang.co.kr/products/405399188');
-          console.log('PARSER_VERSION',VERSION);
-          const inputs=[userUrl,'https://m.bunjang.co.kr/products/423628860','https://m.bunjang.co.kr/products/429362102'];
-          const parsed=await Promise.all(inputs.map(async input=>{
-            const target=normalize(input);
-            try{
-              const response=await fetch('https://r.jina.ai/'+target.url,{headers:{Accept:'application/json','X-Respond-With':'markdown','X-No-Cache':'true','X-Engine':'browser','X-Timeout':'20'},signal:AbortSignal.timeout(55000)});
-              const payload=await response.text();
-              if(!response.ok)throw Error('Reader HTTP '+response.status);
-              const product=parseReader(payload,input),quote=calculate(product.priceKrw,product.shippingKrw);
-              console.log('REAL_PRODUCT',JSON.stringify({product,quote}));
-              if(target.id==='405399188'){
-                assert.equal(product.priceKrw,28000);
-                assert.equal(product.shippingKrw,4000);
-                assert.equal(quote.totalTwd,782);
-                console.log('EXACT_USER_URL_ASSERTIONS_PASS');
-              }
-              return {id:target.id,ok:true};
-            }catch(e){console.log('REAL_PRODUCT_ERROR',JSON.stringify({id:target.id,code:e.code,message:e.message}));return {id:target.id,ok:false};}
-          }));
-          const domains=['https://korea-quote-0908.vercel.app','https://korea-quote-0908-bychen999.vercel.app','https://korea-quote-0908-ko2ml6x1w-bychen999.vercel.app'];
-          await Promise.all(domains.map(async base=>{
-            for(const path of ['/api/health','/']){
-              try{
-                const r=await fetch(base+path,{redirect:'manual',signal:AbortSignal.timeout(20000)}),text=await r.text();
-                console.log('DEPLOYMENT_PROBE',JSON.stringify({url:base+path,status:r.status,location:r.headers.get('location'),type:r.headers.get('content-type'),version:r.headers.get('x-quote-version'),bytes:text.length,body:text.slice(0,350),hasNewVersion:text.includes(VERSION)}));
-                if(path==='/api/health'&&r.ok&&r.headers.get('content-type')?.includes('application/json')){
-                  const health=JSON.parse(text);
-                  if(health.version===VERSION){
-                    const qr=await fetch(base+'/api/quote?url='+encodeURIComponent(userUrl),{redirect:'manual',signal:AbortSignal.timeout(55000)}),qt=await qr.text();
-                    console.log('LIVE_QUOTE',JSON.stringify({url:base,status:qr.status,type:qr.headers.get('content-type'),body:qt.slice(0,3500)}));
-                    if(qr.ok&&qr.headers.get('content-type')?.includes('application/json')){const d=JSON.parse(qt);assert.equal(d.ok,true);assert.equal(d.version,VERSION);assert.equal(d.quote.totalTwd,782);assert.equal(d.product.id,'405399188');console.log('LIVE_EXACT_URL_PASS',base);}
-                  }
-                }
-              }catch(e){console.log('DEPLOYMENT_ERROR',JSON.stringify({url:base+path,message:e.message}));}
+          import fs from 'node:fs';
+          import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app';
+          const longUrl='https://m.bunjang.co.kr/products/405399188?imp_id=6a9e6a9fc7d000000032&ref_code=%22%7B%5C%22cntr%5C%22%3A%5C%22BPC001%3AALL_ALL_P_1%5C%22%2C%5C%22pos%5C%22%3A%5C%220%5C%22%7D%22&ref_content=BPC001%3AALL_ALL_P_1';
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          const report=[];
+          try{
+            for(const width of [393,1280]){
+              const context=await browser.newContext({viewport:{width,height:852},deviceScaleFactor:1,permissions:['clipboard-read','clipboard-write']});
+              const page=await context.newPage(),errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              const response=await page.goto(base+'/?v=20260908-2',{waitUntil:'networkidle',timeout:30000});
+              assert.equal(response.status(),200);
+              assert.ok(page.url().startsWith(base+'/'));
+              await page.locator('#url').fill(longUrl);
+              const quoteResponse=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:60000});
+              await page.locator('#go').click();
+              const qr=await quoteResponse,body=await qr.json();
+              assert.equal(qr.status(),200); assert.equal(body.ok,true);
+              assert.equal(body.product.id,'405399188'); assert.equal(body.quote.totalTwd,782);
+              await page.locator('#result:not([hidden])').waitFor({timeout:10000});
+              assert.equal(await page.locator('#total').innerText(),'782');
+              assert.equal(await page.locator('#url').inputValue(),'https://m.bunjang.co.kr/products/405399188');
+              assert.equal(await page.locator('#error').isVisible(),false);
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+              await page.locator('#copy').click();
+              const copied=await page.evaluate(()=>navigator.clipboard.readText());
+              assert.ok(copied.includes('NT$782')); assert.ok(copied.includes('28000')); assert.ok(copied.includes('4000'));
+              assert.deepEqual(errors,[]);
+              await page.screenshot({path:'acceptance/live-'+width+'.png',fullPage:true});
+              const record={viewport:width,unauthenticated:true,mockedNetwork:false,product:body.product,quote:body.quote,version:body.version,clipboardPassed:true,noHorizontalOverflow:true,javascriptErrors:errors,checkedAt:new Date().toISOString()};
+              report.push(record); console.log('BROWSER_ACCEPTANCE_PASS',JSON.stringify(record));
+              await page.locator('#url').fill('https://example.com/');
+              await page.locator('#go').click();
+              await page.locator('#error:not([hidden])').waitFor();
+              assert.equal(await page.locator('#result').isVisible(),false);
+              console.log('INVALID_URL_FAILS_SAFELY',width);
+              await context.close();
             }
-          }));
-          if(!parsed.find(x=>x.id==='405399188')?.ok)process.exitCode=1;
+            for(const id of ['423628860','429362102']){
+              const r=await fetch(base+'/api/quote?url='+encodeURIComponent('https://m.bunjang.co.kr/products/'+id),{redirect:'manual',signal:AbortSignal.timeout(55000)});
+              const d=await r.json();assert.equal(r.status,200);assert.equal(d.ok,true);assert.equal(d.product.id,id);
+              const expected=id==='423628860'?16703:1344;assert.equal(d.quote.totalTwd,expected);
+              console.log('LIVE_REGRESSION_PASS',JSON.stringify({id,quote:d.quote,version:d.version}));
+            }
+          }finally{fs.writeFileSync('acceptance/report.json',JSON.stringify(report,null,2));await browser.close();}
           JS
+      - name: Save acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: korea-quote-live-acceptance
+          path: acceptance/
+          retention-days: 7
