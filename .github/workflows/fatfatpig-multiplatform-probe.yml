@@ -1,0 +1,39 @@
+name: Fat Fat Pig multi-platform public-page probe
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-multiplatform-probe.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read bounded public product responses without login
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const sources=[
+            ['fruit','https://fruitsfamily.com/product/6gnwx/wearhouse-t'],
+            ['fruit2','https://fruitsfamily.com/product/55d70/oriental-mood-onepiece'],
+            ['zigzag','https://zigzag.kr/catalog/products/154413957'],
+            ['zigzag2','https://zigzag.kr/catalog/products/158650828'],
+            ['poca','https://pocamarket.com'],
+            ['site','https://korea-quote-0908.vercel.app/api/health']
+          ];
+          await Promise.all(sources.map(async([name,url])=>{
+            try{const r=await fetch(url,{headers:{Accept:'text/html,application/json','Accept-Language':'ko-KR'},signal:AbortSignal.timeout(25000)});const b=await r.text();if(b.length>3000000)throw Error('Oversized public response');fs.writeFileSync('evidence/'+name+'.txt',b);const scripts=[...b.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>m[1]);const meta=[...b.matchAll(/<meta\b[^>]*>/gi)].map(m=>m[0]).filter(x=>/price|title|description|currency|url|image/.test(x));const next=b.match(/<script\b[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);console.log('RAW',JSON.stringify({name,url:r.url,status:r.status,type:r.headers.get('content-type'),bytes:b.length,meta:meta.slice(0,18),scripts:scripts.slice(-8),nextKeys:next?Object.keys(JSON.parse(next[1])):null,excerpt:name==='site'?b:undefined}));}catch(e){console.log('RAW_ERROR',name,e.message);}
+          }));
+          await Promise.all(sources.filter(([name])=>['fruit','zigzag','zigzag2','poca'].includes(name)).map(async([name,url])=>{
+            try{const r=await fetch('https://r.jina.ai/'+url,{headers:{Accept:'application/json','X-Respond-With':'markdown','X-Engine':'browser','X-Timeout':'20','X-No-Cache':'true'},signal:AbortSignal.timeout(48000)});const b=await r.text();fs.writeFileSync('evidence/'+name+'-reader.json',b);let d;try{d=JSON.parse(b).data}catch{};console.log('RENDERED',JSON.stringify({name,status:r.status,bytes:b.length,title:d?.title,content:d?.content?.slice(0,9000)}));}catch(e){console.log('READER_ERROR',name,e.message);}
+          }));
+          JS
+      - name: Save public-page development fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-multiplatform-public-pages
+          path: evidence/
+          retention-days: 3
