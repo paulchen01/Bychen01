@@ -1,0 +1,78 @@
+name: Fat Fat Pig pricing v4 live acceptance
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fatfatpig-pricing-acceptance.yml'
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install isolated browser test dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Test public production website without login
+        run: |
+          mkdir -p acceptance/source/lib
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-08.4';
+          let ready=false,last;
+          for(let i=0;i<24;i++){
+            try{const r=await fetch(base+'/api/health',{redirect:'manual',signal:AbortSignal.timeout(10000)}),text=await r.text();last={status:r.status,body:text.slice(0,600)};if(r.ok){const d=JSON.parse(text);if(d.version===version){assert.equal(d.exchangeRate,38);assert.equal(d.feeBasis,'subtotalKrw');ready=true;console.log('PRODUCTION_READY',JSON.stringify(d));break;}}}catch(e){last={error:e.message};}
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          assert.ok(ready,JSON.stringify(last));
+          for(const file of ['lib/pricing.mjs','lib/quote.mjs','lib/inquiry.mjs']){const r=await fetch(base+'/'+file);assert.equal(r.status,200);fs.writeFileSync('acceptance/source/'+file,await r.text());}
+          const {calculate,FEE_TIERS,formulaText,feeDescription}=await import('./acceptance/source/lib/pricing.mjs');
+          const {normalize}=await import('./acceptance/source/lib/quote.mjs');
+          const boundaries=[[19999,'fixed50',577],[20000,'fixed50',577],[20001,'percent8',569],[79999,'percent8',2274],[80000,'percent5',2211],[149999,'percent5',4145],[150000,'percent3',4066],[199999,'percent3',5422],[200000,'free',5264],[200001,'free',5264]];
+          for(const [n,id,total]of boundaries){const q=calculate(n,0);assert.equal(q.tierId,id);assert.equal(q.totalTwd,total);console.log('LIVE_MODULE_BOUNDARY_PASS',n,id,total);}
+          const brandResponse=await fetch(base+'/assets/brand.webp');assert.equal(brandResponse.status,200);assert.equal(createHash('sha256').update(Buffer.from(await brandResponse.arrayBuffer())).digest('hex'),'86ea0745abd440aa68a81f114c103a2859172dc1a31e7251c19d2c7a564d8a6f');
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          const report=[];
+          try{
+            for(const width of [393,1440,320]){
+              const context=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']});
+              const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const home=await page.goto(base+'/?v=20260908-4',{waitUntil:'networkidle',timeout:30000});assert.equal(home.status(),200);assert.ok(page.url().startsWith(base+'/'));
+              assert.ok((await page.title()).includes('廢廢豬'));assert.equal(await page.locator('#version').innerText(),version);assert.equal(await page.locator('#rate').innerText(),'38');assert.equal(await page.locator('#feeTiers tr').count(),5);
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+              await page.screenshot({path:'acceptance/home-'+width+'.png',fullPage:true});
+              await page.locator('.manual-details summary').click();
+              const cases=[[10000,4000,419,'fixed50'],[28000,4000,910,'percent8'],[76000,4000,2211,'percent5'],[146000,4000,4066,'percent3'],[196000,4000,5264,'free']];
+              for(const [p,s,expected,tier]of cases){
+                await page.locator('#p').fill(String(p));await page.locator('#s').fill(String(s));await page.locator('#manual button').click();
+                await page.locator('#result:not([hidden])').waitFor();assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(expected));
+                assert.equal(await page.locator('.active-tier').getAttribute('data-tier'),tier);assert.equal(await page.locator('#feeLabel').innerText(),feeDescription(calculate(p,s)));
+                await page.locator('#requestNote').fill('1 件 & 確認款式');const href=await page.locator('#lineInquiry').getAttribute('href'),url=new URL(href),text=decodeURIComponent(url.search.slice(1));
+                assert.equal(decodeURIComponent(url.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes(formulaText(calculate(p,s))));assert.ok(text.includes('NT$'+new Intl.NumberFormat('zh-TW').format(expected)));assert.ok(!text.includes('÷43'));assert.ok(!text.includes('null%'));
+                await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);assert.equal(await page.locator('#mobileLine').getAttribute('href'),href);
+                assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+                if(width===393&&['fixed50','percent8','free'].includes(tier))await page.locator('#result-panel').screenshot({path:'acceptance/result-'+tier+'-'+width+'.png'});
+                console.log('BROWSER_TIER_PASS',JSON.stringify({width,priceKrw:p,shippingKrw:s,tier,total:expected,linePassed:true,clipboardPassed:true}));
+              }
+              const productUrl='https://m.bunjang.co.kr/products/405399188?imp_id=6a9e6a9fc7d000000032&ref_code=%22%7B%5C%22cntr%5C%22%3A%5C%22BPC001%3AALL_ALL_P_1%5C%22%2C%5C%22pos%5C%22%3A%5C%220%5C%22%7D%22&ref_content=BPC001%3AALL_ALL_P_1';
+              await page.locator('#url').fill(productUrl);const pending=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:65000});await page.locator('#go').click();const response=await pending,d=await response.json();assert.equal(response.status(),200);assert.equal(d.ok,true);assert.equal(d.version,version);assert.equal(d.quote.pricingVersion,version);assert.equal(d.product.id,'405399188');const expected=calculate(d.product.priceKrw,d.product.shippingKrw);assert.deepEqual(d.quote,expected);
+              await page.locator('#result:not([hidden])').waitFor();assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(expected.totalTwd));assert.equal(await page.locator('#url').inputValue(),normalize(productUrl).url);assert.equal(await page.locator('#error').isVisible(),false);assert.deepEqual(errors,[]);
+              const text=decodeURIComponent(new URL(await page.locator('#lineInquiry').getAttribute('href')).search.slice(1));assert.ok(text.includes(d.product.url));assert.ok(text.includes(formulaText(d.quote)));assert.ok(text.includes('NT$'+new Intl.NumberFormat('zh-TW').format(d.quote.totalTwd)));
+              await page.screenshot({path:'acceptance/live-quote-'+width+'.png',fullPage:true});
+              report.push({width,unauthenticated:true,manualTiersPassed:5,liveQuote:d,clipboardPassed:true,lineMessage:text,errors,checkedAt:new Date().toISOString()});console.log('LIVE_BROWSER_PASS',JSON.stringify(report.at(-1)));
+              await context.close();
+            }
+            for(const id of ['423628860','429362102']){const r=await fetch(base+'/api/quote?url='+encodeURIComponent('https://m.bunjang.co.kr/products/'+id),{signal:AbortSignal.timeout(55000)});const d=await r.json();assert.equal(r.status,200);assert.equal(d.ok,true);assert.deepEqual(d.quote,calculate(d.product.priceKrw,d.product.shippingKrw));console.log('LIVE_REGRESSION_PASS',JSON.stringify({id,quote:d.quote}));}
+            const invalid=await fetch(base+'/api/quote?url='+encodeURIComponent('http://127.0.0.1/'));assert.equal(invalid.status,422);assert.equal((await invalid.json()).ok,false);
+          }finally{fs.writeFileSync('acceptance/report.json',JSON.stringify({version,boundaries,tests:report},null,2));await browser.close();}
+          JS
+      - name: Save live test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-pricing-v4-live-acceptance
+          path: acceptance/
+          retention-days: 7
