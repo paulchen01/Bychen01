@@ -1,0 +1,24 @@
+name: Read public Musinsa product details
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v9-musinsa-product-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const url='https://www.musinsa.com/products/484461';
+          await Promise.all([false,true].map(async reader=>{try{const r=await fetch(reader?'https://r.jina.ai/'+url:url,{headers:reader?{Accept:'application/json','X-Engine':'browser','X-Timeout':'20','X-No-Cache':'true'}:{'Accept-Language':'ko-KR'},signal:AbortSignal.timeout(48000)}),s=await r.text();fs.writeFileSync('evidence/musinsa-product'+(reader?'-reader.json':'.html'),s);let d;try{d=JSON.parse(s).data;}catch{}console.log('DETAIL',JSON.stringify({reader,status:r.status,url:r.url,length:s.length,title:d?.title,content:d?.content?.slice(0,26000),head:reader?null:s.slice(0,2500)}));}catch(e){console.log('ERROR',reader,e.message);}}));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v9-musinsa-detail
+          path: evidence/
+          retention-days: 7
