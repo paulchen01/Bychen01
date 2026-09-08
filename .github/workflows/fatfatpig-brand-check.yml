@@ -1,0 +1,83 @@
+name: Fat Fat Pig brand and LINE acceptance
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fatfatpig-brand-check.yml'
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install isolated browser test dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Verify actual production site without login or mocked prices
+        run: |
+          mkdir -p acceptance/source/lib acceptance/source/assets
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-08.3';
+          const productUrl='https://m.bunjang.co.kr/products/405399188?imp_id=6a9e6a9fc7d000000032&ref_code=%22%7B%5C%22cntr%5C%22%3A%5C%22BPC001%3AALL_ALL_P_1%5C%22%2C%5C%22pos%5C%22%3A%5C%220%5C%22%7D%22&ref_content=BPC001%3AALL_ALL_P_1';
+          let ready=false;
+          for(let i=0;i<15;i++){
+            try{const r=await fetch(base+'/api/health',{redirect:'manual',signal:AbortSignal.timeout(10000)});const d=await r.json();if(r.ok&&d.version===version){ready=true;console.log('PRODUCTION_READY',JSON.stringify(d));break;}}catch{}
+            await new Promise(r=>setTimeout(r,4000));
+          }
+          assert.ok(ready,'Expected new production version was not found');
+          for(const file of ['index.html','style.css','app.js','lib/quote.mjs','lib/inquiry.mjs','assets/brand.webp','assets/line-qr.png','assets/favicon.svg']){
+            const r=await fetch(base+'/'+(file==='index.html'?'':file),{redirect:'manual',signal:AbortSignal.timeout(15000)});assert.equal(r.status,200,file);const b=Buffer.from(await r.arrayBuffer());fs.writeFileSync('acceptance/source/'+file,b);
+            const sha256=createHash('sha256').update(b).digest('hex');
+            console.log('ASSET',JSON.stringify({file,bytes:b.length,sha256}));
+            if(file==='assets/brand.webp')assert.equal(sha256,'86ea0745abd440aa68a81f114c103a2859172dc1a31e7251c19d2c7a564d8a6f','Published artwork differs from supplied optimized logo');
+          }
+          const {normalize,calculate}=await import('./acceptance/source/lib/quote.mjs');
+          const {BRAND,CONTACT_URL,inquiryText,chatUrl}=await import('./acceptance/source/lib/inquiry.mjs');
+          assert.equal(BRAND.lineId,'@fatfatpig_kr');assert.equal(CONTACT_URL,'https://line.me/R/ti/p/%40fatfatpig_kr');
+          assert.equal(calculate(28000,4000).totalTwd,782);assert.equal(calculate(680000,4000).totalTwd,16703);assert.equal(calculate(50000,5000).totalTwd,1344);
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          const report=[];
+          try{
+            for(const width of [393,1440,320]){
+              const phone=width<720;
+              const context=await browser.newContext({viewport:{width,height:900},deviceScaleFactor:1,permissions:['clipboard-read','clipboard-write'],...(phone?{isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'}:{})});
+              const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const home=await page.goto(base+'/?v=20260908-3',{waitUntil:'networkidle',timeout:30000});assert.equal(home.status(),200);assert.ok(page.url().startsWith(base+'/'));
+              assert.ok((await page.title()).includes('廢廢豬'));assert.equal(await page.locator('#version').innerText(),version);
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+              const broken=await page.locator('img').evaluateAll(els=>els.filter(el=>!el.hidden&&el.getAttribute('loading')!=='lazy'&&el.src&&!el.naturalWidth).map(el=>el.src));assert.deepEqual(broken,[]);
+              await page.screenshot({path:'acceptance/brand-home-'+width+'.png',fullPage:true});
+              await page.locator('#url').fill(productUrl);
+              const pending=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:65000});await page.locator('#go').click();const response=await pending,data=await response.json();
+              assert.equal(response.status(),200);assert.equal(data.ok,true);assert.equal(data.version,version);assert.equal(data.product.id,'405399188');
+              assert.equal(data.quote.totalTwd,calculate(data.product.priceKrw,data.product.shippingKrw,data.quote.exchangeRate,data.quote.servicePercent).totalTwd);
+              await page.locator('#result:not([hidden])').waitFor();assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(data.quote.totalTwd));
+              assert.equal(await page.locator('#url').inputValue(),normalize(productUrl).url);
+              await page.locator('#requestNote').fill('狐狸款 1 個 & 想確認庫存');
+              const href=await page.locator('#lineInquiry').getAttribute('href'),u=new URL(href),text=decodeURIComponent(u.search.slice(1));
+              assert.equal(u.origin,'https://line.me');assert.equal(decodeURIComponent(u.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes(data.product.url));assert.ok(text.includes('NT$'+new Intl.NumberFormat('zh-TW').format(data.quote.totalTwd)));assert.ok(text.includes('狐狸款 1 個 & 想確認庫存'));
+              assert.equal(text,inquiryText(data.product,data.quote,{note:'狐狸款 1 個 & 想確認庫存'}));
+              await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);
+              if(phone){assert.equal(await page.locator('#mobileLine').getAttribute('href'),href);}else{await page.locator('#lineInquiry').click();assert.ok(await page.locator('#lineDialog').isVisible());assert.equal(await page.locator('#desktopText').inputValue(),text);await page.locator('[data-close=lineDialog]').click();}
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+              await page.screenshot({path:'acceptance/brand-quote-'+width+'.png',fullPage:true});
+              await page.locator('#result-panel').screenshot({path:'acceptance/brand-result-'+width+'.png'});
+              const record={viewport:width,unauthenticated:true,mockedNetwork:false,brand:'廢廢豬',lineId:BRAND.lineId,product:data.product,quote:data.quote,lineMessage:text,lineLinkPassed:true,copyPassed:true,desktopDialogPassed:!phone,noHorizontalOverflow:true,javascriptErrors:errors,checkedAt:new Date().toISOString()};report.push(record);console.log('LIVE_BRAND_ACCEPTANCE_PASS',JSON.stringify(record));
+              await page.locator('#url').fill('https://example.com/');await page.locator('#go').click();assert.ok(await page.locator('#error').isVisible());assert.equal(await page.locator('#result').isVisible(),false);assert.equal(await page.locator('#mobileLine').getAttribute('href'),CONTACT_URL);
+              await context.close();
+            }
+            for(const id of ['423628860','429362102']){const r=await fetch(base+'/api/quote?url='+encodeURIComponent('https://m.bunjang.co.kr/products/'+id),{signal:AbortSignal.timeout(55000)}),d=await r.json();assert.equal(r.status,200);assert.equal(d.ok,true);assert.equal(d.product.id,id);assert.equal(d.quote.totalTwd,calculate(d.product.priceKrw,d.product.shippingKrw).totalTwd);console.log('LIVE_PRICE_REGRESSION_PASS',JSON.stringify({id,quote:d.quote}));}
+            try{const r=await fetch(CONTACT_URL,{signal:AbortSignal.timeout(15000)}),html=await r.text();console.log('PUBLIC_LINE_PROFILE',JSON.stringify({status:r.status,url:r.url,title:html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]}));}catch(e){console.log('LINE_PROFILE_FETCH_NOTE',e.message);}
+          }finally{fs.writeFileSync('acceptance/report.json',JSON.stringify(report,null,2));await browser.close();}
+          JS
+      - name: Save screenshots and acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-brand-live-acceptance
+          path: acceptance/
+          retention-days: 7
