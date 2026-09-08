@@ -1,0 +1,28 @@
+name: Prepare shipping-optional estimate v7
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fatfatpig-v7-prepare.yml'
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch immutable preparation source
+        run: curl --fail --silent --show-error --max-time 30 'https://raw.githubusercontent.com/paulchen01/Bychen01/c809547d98aa67791db38343f0a24fceb754ab63/korea-quote/releases/prepare-20260908-7.mjs' -o prepare.mjs
+      - name: Verify old files, patch missing-shipping behavior and save new source snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node prepare.mjs
+      - name: Save build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-estimate-v7-prepared
+          path: |
+            prepared-site/
+            prepared-v7.json
+          retention-days: 7
