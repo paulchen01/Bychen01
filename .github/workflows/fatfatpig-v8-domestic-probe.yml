@@ -1,0 +1,30 @@
+name: Inspect domestic and global product mappings v8
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v8-domestic-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Fetch bounded public pages and routing metadata
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const inputs=[['health','https://korea-quote-0908.vercel.app/api/health'],['global-bunjang','https://globalbunjang.com/product/405399188'],['global-bunjang2','https://globalbunjang.com/product/360813919'],['poca-global','https://pocamarket.com/search/detail/505461'],['poca-home-kr','https://phocamarket.com/'],['poca-candidate-kr','https://phocamarket.com/search/detail/505461']];
+          for(const[name,url]of inputs){try{const r=await fetch(url,{headers:{'Accept-Language':'ko-KR,ko;q=0.9'},signal:AbortSignal.timeout(18000)}),text=await r.text();if(text.length>3000000)throw Error('too large');fs.writeFileSync('evidence/'+name+'.txt',text);const links=[...text.matchAll(/(?:href|src)=["']([^"']+)["']/gi)].map(m=>m[1]);const json=[...text.matchAll(/<script[^>]*(?:id=["']__NEXT_DATA__["']|type=["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);console.log('PAGE',JSON.stringify({name,status:r.status,url:r.url,title:text.match(/<title[^>]*>(.*?)<\/title>/)?.[1],bytes:text.length,meta:[...text.matchAll(/<meta[^>]*>/gi)].map(m=>m[0]).filter(t=>/price|currency|og:title|og:url/.test(t)),links:links.filter(x=>/phoca|poca|bunjang|\.js|alternate|korea/i.test(x)).slice(-18),json:json.map(x=>x.slice(0,1000)),currencies:[...new Set(text.match(/.{0,70}(?:krw|KRW|USD|domestic|original_price|originalPrice|korea_price|countryCode).{0,100}/g)||[])].slice(0,18)}));}catch(e){console.log('ERROR',name,e.message)}}
+          const html=fs.readFileSync('evidence/poca-candidate-kr.txt','utf8');
+          const scripts=[...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>new URL(m[1],'https://phocamarket.com').href).filter(u=>new URL(u).hostname==='phocamarket.com').slice(-8);
+          for(const[url,i]of scripts.map((u,i)=>[u,i])){try{const r=await fetch(url,{signal:AbortSignal.timeout(15000)}),s=await r.text();if(s.length>3000000)continue;fs.writeFileSync('evidence/poca-js-'+i+'.txt',s);console.log('SCRIPT',JSON.stringify({url,bytes:s.length,matches:[...s.matchAll(/.{0,80}(?:search\/detail|photocard|pocamarket.com|phocamarket.com|\/detail|\/poca|inventory|dynamicLink|deepLink).{0,100}/g)].map(m=>m[0]).slice(0,35)}));}catch(e){console.log('SCRIPT_ERROR',e.message)}}
+          JS
+      - name: Save public fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v8-domestic-probe
+          path: evidence/
+          retention-days: 7
