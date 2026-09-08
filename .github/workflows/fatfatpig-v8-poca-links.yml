@@ -1,0 +1,29 @@
+name: Check official Korean links v8
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v8-poca-links.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          await Promise.all([
+            ['poca-apple','https://phocamarket.com/.well-known/apple-app-site-association'],
+            ['poca-android','https://phocamarket.com/.well-known/assetlinks.json'],
+            ['bunjang-domestic','https://r.jina.ai/https://m.bunjang.co.kr/products/360813919'],
+            ['bunjang-domestic2','https://r.jina.ai/https://m.bunjang.co.kr/products/405399188']
+          ].map(async([name,url])=>{try{const r=await fetch(url,{headers:url.includes('r.jina.ai')?{Accept:'application/json','X-Engine':'browser','X-Timeout':'20','X-No-Cache':'true'}:{Accept:'application/json'},signal:AbortSignal.timeout(45000)}),s=await r.text();if(s.length>3000000)throw Error('too large');fs.writeFileSync('evidence/'+name+'.txt',s);let data;try{data=JSON.parse(s);}catch{}console.log('PROBE',JSON.stringify({name,status:r.status,url:r.url,body:data?.data?.content?.slice(0,5000)||s.slice(0,1800)}));}catch(e){console.log('ERROR',name,e.message)}}));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fatfatpig-v8-korean-links
+          path: evidence/
+          retention-days: 7
