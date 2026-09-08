@@ -1,0 +1,86 @@
+name: Fat Fat Pig v6 clean layout acceptance
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fatfatpig-v6-clean-layout.yml'
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Install isolated browser and CJK font support
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Check actual public layout and unchanged quote functions
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-08.6';
+          const hash=b=>createHash('sha256').update(b).digest('hex');
+          let ready=false,last;
+          for(let i=0;i<18;i++){
+            try{const r=await fetch(base+'/api/health',{redirect:'manual',signal:AbortSignal.timeout(10000)}),text=await r.text();last={status:r.status,text:text.slice(0,500)};if(r.ok){const d=JSON.parse(text);if(d.version===version){assert.equal(d.exchangeRate,38);assert.equal(d.pricingVersion,'2026-09-08.4');assert.equal(d.platforms.length,6);ready=true;console.log('PRODUCTION_READY',JSON.stringify(d));break;}}}catch(e){last={error:e.message};}
+            await new Promise(r=>setTimeout(r,4000));
+          }
+          assert.ok(ready,JSON.stringify(last));
+          const preserved={'style.css':'9e3ee24286dfeed514429aff5d49df91cf42ac8a9ee534dc387e02ec8eadcde8','lib/pricing.mjs':'dbba85432912d14ccd97011cb8303a52eb38969c46da8b549334d6f61206ae1e','lib/quote.mjs':'5abb8020998c7863e8fedaacb8e1265d45f13a5d42f45417ee3ebe10774e91be','lib/extract.mjs':'f87c2197569265e1dcc356b48f70e70c0662c848878169a8db98098b106b66e4','lib/inquiry.mjs':'e5344a3efebdf3c57a0a0cf1fbaf6b9f5d3e7368f43271b80b2d5f111190738d','assets/brand.webp':'86ea0745abd440aa68a81f114c103a2859172dc1a31e7251c19d2c7a564d8a6f'};
+          const sources={};
+          for(const file of ['index.html','app.js','lib/platforms.mjs',...Object.keys(preserved),'assets/line-qr.png','assets/favicon.svg']){
+            const r=await fetch(base+'/'+file,{redirect:'manual',signal:AbortSignal.timeout(12000)});assert.equal(r.status,200,file);const b=Buffer.from(await r.arrayBuffer());fs.writeFileSync('evidence/source/'+file,b);sources[file]=hash(b);if(preserved[file])assert.equal(sources[file],preserved[file],file);
+          }
+          const html=fs.readFileSync('evidence/source/index.html','utf8'),app=fs.readFileSync('evidence/source/app.js','utf8');
+          for(const s of ['platformDirectory','A LITTLE LINK, A CLEAR PRICE.','先算算，心動要多少。','6 大平台 · 自動辨識網址','class="platform-policy"'])assert.ok(!html.includes(s),s);
+          assert.ok(!app.includes('platformDirectory'));
+          const {normalize,PLATFORMS}=await import('./evidence/source/lib/platforms.mjs');
+          assert.equal(PLATFORMS.length,6);
+          const examples=[['bunjang','https://m.bunjang.co.kr/products/405399188'],['fruits','https://fruitsfamily.com/product/6gnwx/wearhouse-t'],['zigzag','https://zigzag.kr/catalog/products/154413957'],['naver','https://smartstore.naver.com/test/products/123456789'],['poca','https://pocamarket.com/search/detail/505461'],['x','https://x.com/test/status/1234567890123456789']];
+          for(const[id,url]of examples)assert.equal(normalize(url).platformId,id);
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          const tests=[];
+          try{
+            for(const width of [393,1440,320]){
+              const context=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']});
+              const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const r=await page.goto(base+'/?v=20260908-6',{waitUntil:'networkidle',timeout:30000});assert.equal(r.status(),200);assert.ok(page.url().startsWith(base+'/'));
+              await page.evaluate(()=>document.fonts.ready);
+              assert.equal(await page.locator('#version').innerText(),version);
+              assert.equal(await page.locator('#platformDirectory,.platform-tile,.platform-policy,.section-heading').count(),0);
+              assert.equal(await page.evaluate(()=>document.querySelector('.hero').nextElementSibling.id),'quote-form');
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+              assert.equal(await page.locator('#url').count(),1);
+              await page.screenshot({path:'evidence/home-'+width+'.png',fullPage:true});
+              await page.locator('.manual-details summary').click();await page.locator('#p').fill('28000');await page.locator('#s').fill('4000');await page.locator('#manual button').click();
+              await page.locator('#result:not([hidden])').waitFor();assert.equal(await page.locator('#total').innerText(),'910');
+              await page.locator('#requestNote').fill('1 件，確認款式');
+              const line=new URL(await page.locator('#lineInquiry').getAttribute('href')),text=decodeURIComponent(line.search.slice(1));
+              assert.equal(decodeURIComponent(line.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes('NT$910'));assert.ok(text.includes('÷38'));
+              await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);
+              assert.deepEqual(errors,[]);
+              if(width===393){
+                await page.locator('#url').fill('https://m.bunjang.co.kr/products/405399188?imp_id=6a9e6a9fc7d000000032&ref_content=BPC001%3AALL_ALL_P_1');
+                const pending=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:60000});await page.locator('#go').click();const qr=await pending,d=await qr.json();assert.equal(qr.status(),200);assert.equal(d.ok,true);assert.equal(d.version,version);assert.equal(d.product.id,'405399188');await page.locator('#result:not([hidden])').waitFor();
+                assert.ok(['quoted','needs_confirmation'].includes(d.status));if(d.status==='quoted'){assert.equal(d.quote.exchangeRate,38);assert.equal(d.quote.pricingVersion,'2026-09-08.4');}
+                console.log('LIVE_PRODUCT',JSON.stringify(d));
+                await page.locator('#result-panel').screenshot({path:'evidence/result-393.png'});
+              }
+              assert.deepEqual(errors,[]);
+              const record={width,version,removedIntroduction:true,heroDirectlyFollowedByForm:true,manualQuote:910,lineLinkPassed:true,copyPassed:true,noJavascriptErrors:true,checkedAt:new Date().toISOString()};tests.push(record);console.log('CLEAN_LAYOUT_PASS',JSON.stringify(record));await context.close();
+            }
+          }finally{fs.writeFileSync('evidence/report.json',JSON.stringify({version,sources,tests},null,2));await browser.close();}
+          JS
+      - name: Save public-site evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v6-clean-layout
+          path: evidence/
+          retention-days: 7
