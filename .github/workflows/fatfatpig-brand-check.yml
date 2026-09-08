@@ -60,14 +60,16 @@ jobs:
               await page.locator('#requestNote').fill('狐狸款 1 個 & 想確認庫存');
               const href=await page.locator('#lineInquiry').getAttribute('href'),u=new URL(href),text=decodeURIComponent(u.search.slice(1));
               assert.equal(u.origin,'https://line.me');assert.equal(decodeURIComponent(u.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes(data.product.url));assert.ok(text.includes('NT$'+new Intl.NumberFormat('zh-TW').format(data.quote.totalTwd)));assert.ok(text.includes('狐狸款 1 個 & 想確認庫存'));
-              assert.equal(text,inquiryText(data.product,data.quote,{note:'狐狸款 1 個 & 想確認庫存'}));
+              // Node and Chromium use different ICU versions: only normalize date separator thin spaces.
+              const icuSpace=s=>s.replace(/[\u2009\u202f]/g,' ');
+              assert.equal(icuSpace(text),icuSpace(inquiryText(data.product,data.quote,{note:'狐狸款 1 個 & 想確認庫存'})));
               await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);
               if(phone){assert.equal(await page.locator('#mobileLine').getAttribute('href'),href);}else{await page.locator('#lineInquiry').click();assert.ok(await page.locator('#lineDialog').isVisible());assert.equal(await page.locator('#desktopText').inputValue(),text);await page.locator('[data-close=lineDialog]').click();}
               assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
               await page.screenshot({path:'acceptance/brand-quote-'+width+'.png',fullPage:true});
               await page.locator('#result-panel').screenshot({path:'acceptance/brand-result-'+width+'.png'});
               const record={viewport:width,unauthenticated:true,mockedNetwork:false,brand:'廢廢豬',lineId:BRAND.lineId,product:data.product,quote:data.quote,lineMessage:text,lineLinkPassed:true,copyPassed:true,desktopDialogPassed:!phone,noHorizontalOverflow:true,javascriptErrors:errors,checkedAt:new Date().toISOString()};report.push(record);console.log('LIVE_BRAND_ACCEPTANCE_PASS',JSON.stringify(record));
-              await page.locator('#url').fill('https://example.com/');await page.locator('#go').click();assert.ok(await page.locator('#error').isVisible());assert.equal(await page.locator('#result').isVisible(),false);assert.equal(await page.locator('#mobileLine').getAttribute('href'),CONTACT_URL);
+              await page.locator('#url').fill('https://example.com/');await page.locator('#go').click();await page.locator('#error:not([hidden])').waitFor();assert.equal(await page.locator('#result').isVisible(),false);assert.equal(await page.locator('#mobileLine').getAttribute('href'),CONTACT_URL);
               await context.close();
             }
             for(const id of ['423628860','429362102']){const r=await fetch(base+'/api/quote?url='+encodeURIComponent('https://m.bunjang.co.kr/products/'+id),{signal:AbortSignal.timeout(55000)}),d=await r.json();assert.equal(r.status,200);assert.equal(d.ok,true);assert.equal(d.product.id,id);assert.equal(d.quote.totalTwd,calculate(d.product.priceKrw,d.product.shippingKrw).totalTwd);console.log('LIVE_PRICE_REGRESSION_PASS',JSON.stringify({id,quote:d.quote}));}
