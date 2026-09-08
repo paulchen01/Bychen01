@@ -1,0 +1,40 @@
+name: Korea quote public-page check
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/korea-quote-check.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read public product responses and deployed quote
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const product='https://m.bunjang.co.kr/products/405399188';
+          const sources=[
+            ['product-html',product,{'Accept':'text/html','Accept-Language':'ko-KR'}],
+            ['reader-default','https://r.jina.ai/'+product,{'Accept':'application/json','X-Respond-With':'markdown','X-No-Cache':'true'}],
+            ['reader-browser','https://r.jina.ai/'+product,{'Accept':'application/json','X-Respond-With':'markdown','X-No-Cache':'true','X-Engine':'browser','X-Timeout':'20'}],
+            ['live-frontend','https://korea-quote-0908-bychen999.vercel.app/',{}],
+            ['live-quote','https://korea-quote-0908-bychen999.vercel.app/api/quote?url='+encodeURIComponent(product),{}]
+          ];
+          const results=await Promise.all(sources.map(async([name,url,headers])=>{
+            try{
+              const r=await fetch(url,{headers,signal:AbortSignal.timeout(65000)});
+              const body=await r.text();
+              let excerpt=body.slice(0,name==='product-html'?18000:23000);
+              const summary={name,status:r.status,url:r.url,contentType:r.headers.get('content-type'),bytes:body.length,body:excerpt};
+              if(name==='product-html'){
+                summary.scripts=[...body.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>m[1]).slice(0,12);
+                summary.metadata=[...body.matchAll(/<meta\b[^>]*>/gi)].map(m=>m[0]).slice(0,45);
+              }
+              return summary;
+            }catch(e){return {name,error:e.message,cause:e.cause?.message}}
+          }));
+          for(const r of results){console.log('\n=== '+r.name+' ===\n'+JSON.stringify(r,null,2));}
+          JS
