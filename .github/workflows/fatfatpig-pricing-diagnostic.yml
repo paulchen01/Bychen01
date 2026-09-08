@@ -1,0 +1,19 @@
+name: Diagnose pricing v4 quote response
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-pricing-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect bounded public HTTP responses
+        run: |
+          node --input-type=module <<'JS'
+          const base='https://korea-quote-0908.vercel.app';
+          await Promise.all(['/api/health','/api/quote?url='+encodeURIComponent('https://m.bunjang.co.kr/products/405399188'),'/api/quote?url='+encodeURIComponent('https://example.com/')].map(async path=>{
+            const start=Date.now();try{const r=await fetch(base+path,{redirect:'manual',signal:AbortSignal.timeout(65000)}),body=await r.text();console.log('PROBE',JSON.stringify({path,status:r.status,type:r.headers.get('content-type'),location:r.headers.get('location'),ms:Date.now()-start,body:body.slice(0,5000)}));}catch(e){console.log('PROBE_ERROR',JSON.stringify({path,ms:Date.now()-start,error:e.message,name:e.name}));}
+          }));
+          JS
