@@ -1,0 +1,62 @@
+name: Verify shipping-optional estimate v7
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fatfatpig-v7-estimate-check.yml'
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install isolated browser and Chinese font support
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk >/dev/null
+      - name: Verify actual public website with missing and known shipping
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-08.7',fruit='https://fruitsfamily.com/product/6gnwx/wearhouse-t';
+          const hash=b=>createHash('sha256').update(b).digest('hex');
+          let ready=false,last;
+          for(let i=0;i<20;i++){try{const r=await fetch(base+'/api/health',{redirect:'manual',signal:AbortSignal.timeout(10000)});last=await r.text();if(r.ok){const d=JSON.parse(last);if(d.version===version){assert.equal(d.exchangeRate,38);assert.equal(d.unknownShippingPolicy,'estimate_product_only');assert.equal(d.platforms.length,6);ready=true;console.log('PRODUCTION_READY',last);break;}}}catch(e){last=e.message;}await new Promise(r=>setTimeout(r,4000));}
+          assert.ok(ready,last);
+          const snapshotResponse=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/5e80525ba7a8f5f251e43b60bda5b969a8dc9a01/korea-quote/releases/site-20260908-7.json');assert.equal(snapshotResponse.status,200);const raw=await snapshotResponse.text();assert.equal(hash(raw),'a567c6515ee9c20a16957042a38c01044aa474a22ee36eae2b6e55044867b694');const snapshot=JSON.parse(raw);
+          for(const f of snapshot.files){if(f.file.startsWith('api/')||f.file==='package.json')continue;const r=await fetch(base+'/'+f.file,{signal:AbortSignal.timeout(10000)});assert.equal(r.status,200);const b=Buffer.from(await r.arrayBuffer());assert.equal(hash(b),f.sha256,f.file);fs.writeFileSync('evidence/source/'+f.file,b);}
+          const {quoteForProduct,estimateFromAmounts}=await import('./evidence/source/lib/estimate.mjs');
+          const {calculate}=await import('./evidence/source/lib/pricing.mjs');
+          const screenshotQuote=estimateFromAmounts(1300000,null);assert.equal(screenshotQuote.totalTwd,34211);assert.equal(screenshotQuote.serviceTwd,0);assert.equal(screenshotQuote.shippingKrw,null);
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});const report=[];
+          try{
+            for(const width of [393,1440,320]){
+              const context=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const home=await page.goto(base+'/?v=20260908-7',{waitUntil:'networkidle',timeout:30000});assert.equal(home.status(),200);assert.ok(page.url().startsWith(base+'/'));await page.evaluate(()=>document.fonts.ready);
+              assert.equal(await page.locator('#version').innerText(),version);assert.equal(await page.locator('#platformDirectory,.platform-tile,.platform-policy,.section-heading').count(),0);assert.equal(await page.evaluate(()=>document.querySelector('.hero').nextElementSibling.id),'quote-form');
+              await page.locator('.manual-details summary').click();await page.locator('#p').fill('1300000');await page.locator('#s').fill('');await page.locator('#manual button').click();await page.locator('#result:not([hidden])').waitFor();
+              assert.equal(await page.locator('#total').innerText(),'34,211');assert.ok((await page.locator('#priceHeading').innerText()).includes('未含韓國運費'));assert.ok((await page.locator('#shipping').innerText()).includes('未計入'));assert.equal(await page.locator('#pendingBlock').isVisible(),false);assert.equal(await page.locator('#feeLabel').innerText(),'免代購費');
+              assert.ok((await page.locator('#barHint').innerText()).includes('未含韓國運費'));assert.equal(await page.locator('#barPrice').innerText(),'NT$34,211');
+              await page.locator('#requestNote').fill('1 件，請確認韓國運費');let line=new URL(await page.locator('#lineInquiry').getAttribute('href')),text=decodeURIComponent(line.search.slice(1));assert.equal(decodeURIComponent(line.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes('NT$34,211'));assert.ok(text.includes('未含韓國運費'));assert.ok(!text.includes('境內運費：₩0'));await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);if(width===393)await page.locator('#result-panel').screenshot({path:'evidence/screenshot-amount-manual-393.png'});
+              await page.locator('#p').fill('28000');await page.locator('#s').fill('4000');await page.locator('#manual button').click();assert.equal(await page.locator('#total').innerText(),'910');assert.equal(await page.locator('#shipping').innerText(),'₩4,000');assert.equal(await page.locator('#shippingNote').isVisible(),false);assert.ok(!(await page.locator('#priceScope').innerText()).includes('未含'));
+              await page.locator('#s').fill('0');await page.locator('#manual button').click();assert.equal(await page.locator('#total').innerText(),'796');assert.equal(await page.locator('#shipping').innerText(),'₩0（免運）');assert.ok(!(await page.locator('#priceHeading').innerText()).includes('未含'));
+              await page.locator('#url').fill(fruit);const pending=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:60000});await page.locator('#go').click();const qr=await pending,d=await qr.json();assert.equal(qr.status(),200);assert.equal(d.status,'estimated');assert.equal(d.product.platformId,'fruits');assert.equal(d.product.currency,'KRW');assert.equal(d.product.shippingKrw,null);assert.equal(d.quote.shippingExcluded,true);assert.deepEqual(d.quote,quoteForProduct(d.product));
+              await page.locator('#result:not([hidden])').waitFor();assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(d.quote.totalTwd));assert.equal(await page.locator('#pendingBlock').isVisible(),false);assert.ok((await page.locator('#priceScope').innerText()).includes('未含韓國'));assert.equal(await page.locator('#error').isVisible(),false);
+              line=new URL(await page.locator('#lineInquiry').getAttribute('href'));text=decodeURIComponent(line.search.slice(1));assert.ok(text.includes(fruit));assert.ok(text.includes('NT$'+new Intl.NumberFormat('zh-TW').format(d.quote.totalTwd)));assert.ok(text.includes('未含韓國運費'));assert.ok(!text.includes('尚未產生台幣報價'));assert.ok(!text.includes('境內運費：₩0'));await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);await page.locator('#result-panel').screenshot({path:'evidence/fruits-live-'+width+'.png'});
+              const record={width,version,unauthenticated:true,networkMocked:false,manualScreenshotAmountPassed:34211,knownShippingManualPassed:910,explicitFreeManualPassed:796,liveResponse:d,lineMessage:text,clipboardPassed:true,noHorizontalOverflow:true,javascriptErrors:errors,checkedAt:new Date().toISOString()};report.push(record);console.log('LIVE_ESTIMATE_PASS',JSON.stringify(record));await context.close();
+            }
+            for(const url of ['https://m.bunjang.co.kr/products/405399188','https://zigzag.kr/catalog/products/154413957','https://zigzag.kr/catalog/products/158650828']){const r=await fetch(base+'/api/quote?url='+encodeURIComponent(url),{signal:AbortSignal.timeout(55000)}),d=await r.json();assert.equal(r.status,200);assert.equal(d.status,'quoted');assert.deepEqual(d.quote,calculate(d.product.priceKrw,d.product.shippingKrw));assert.equal(d.quote.shippingExcluded,undefined);console.log('KNOWN_SHIPPING_REGRESSION_PASS',JSON.stringify({url,price:d.product.priceKrw,shipping:d.product.shippingKrw,quote:d.quote}));}
+          }finally{fs.writeFileSync('evidence/report.json',JSON.stringify({version,screenshotQuote,tests:report},null,2));await browser.close();}
+          JS
+      - name: Save live source and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-estimate-v7-live-validation
+          path: evidence/
+          retention-days: 7
