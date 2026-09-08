@@ -1,0 +1,26 @@
+name: Check public Pocamarket and X detail
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-poca-x-probe.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public detail only
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const poca='https://pocamarket.com/search/detail/505461';
+          const sources=[['poca-detail',poca,{}],['poca-rendered','https://r.jina.ai/'+poca,{Accept:'application/json','X-Respond-With':'markdown','X-Engine':'browser','X-Timeout':'20','X-No-Cache':'true'}],['x-embed','https://publish.twitter.com/oembed?url='+encodeURIComponent('https://twitter.com/Interior/status/463440424141459456')+'&omit_script=1&hide_thread=true',{}]];
+          await Promise.all(sources.map(async([n,u,headers])=>{try{const r=await fetch(u,{headers,signal:AbortSignal.timeout(45000)}),s=await r.text();if(s.length>3000000)throw Error('Too large');fs.writeFileSync('evidence/'+n+'.txt',s);let d;try{d=JSON.parse(s)}catch{}console.log('DETAIL',JSON.stringify({n,status:r.status,url:r.url,bytes:s.length,meta:[...s.matchAll(/<meta\b[^>]*>/gi)].map(x=>x[0]).filter(x=>/price|title|description|currency/.test(x)).slice(0,15),excerpt:n==='poca-rendered'?d?.data?.content?.slice(0,6000):n==='x-embed'?s.slice(0,2500):undefined}));}catch(e){console.log('FAIL',n,e.message)}}));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fatfatpig-poca-x-fixtures
+          path: evidence/
+          retention-days: 3
