@@ -1,0 +1,41 @@
+name: Final Fat Fat Pig pricing v4 acceptance
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-pricing-final-check.yml']
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install isolated browser dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Run pinned full acceptance against updated public deployment
+        run: |
+          mkdir -p acceptance/source/lib
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          let ready=false;
+          for(let i=0;i<24;i++){
+            const r=await fetch('https://korea-quote-0908.vercel.app/app.js',{signal:AbortSignal.timeout(15000)}),s=await r.text();
+            if(r.ok&&s.includes('feeDescription')&&!s.includes("addEventListener('blur',tidy)")){ready=true;break;}
+            await new Promise(r=>setTimeout(r,4000));
+          }
+          assert.ok(ready,'Stable long-URL submission update was not found');
+          const r=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/fcea24e878d5b12fb51840270880b0982dc88b6c/.github/workflows/fatfatpig-pricing-acceptance.yml');assert.equal(r.status,200);
+          const yaml=await r.text(),marker="          node --input-type=module <<'JS'\n";
+          assert.ok(yaml.includes(marker));
+          let code=yaml.split(marker)[1].split('\n          JS')[0].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+          code=code.replace("page.on('pageerror',e=>errors.push(e.message));","page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE_ERROR',e.message);});page.on('request',r=>{if(r.url().includes('/api/quote'))console.log('BROWSER_API_REQUEST',r.url());});page.on('requestfailed',r=>console.log('REQUEST_FAILED',r.url(),r.failure()?.errorText));");
+          fs.writeFileSync('acceptance-test.mjs',code);
+          await import('./acceptance-test.mjs');
+          JS
+      - name: Save public-site screenshots and test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-pricing-v4-final-acceptance
+          path: acceptance/
+          retention-days: 7
