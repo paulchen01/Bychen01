@@ -1,0 +1,34 @@
+name: Final multi-platform and original sharing URL acceptance
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v5-final-check.yml']
+permissions: {contents: read}
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Install pinned browser dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Run full public-site acceptance with exact original user share URL
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          const base='https://korea-quote-0908.vercel.app';
+          const longUrl='https://m.bunjang.co.kr/products/405399188?imp_id=6a9e6a9fc7d000000032&ref_code=%22%7B%5C%22cntr%5C%22%3A%5C%22BPC001%3AALL_ALL_P_1%5C%22%2C%5C%22pos%5C%22%3A%5C%220%5C%22%7D%22&ref_content=BPC001%3AALL_ALL_P_1';
+          let ready=false;
+          for(let i=0;i<24;i++){const r=await fetch(base+'/lib/platforms.mjs',{signal:AbortSignal.timeout(15000)}),s=await r.text();if(r.ok&&s.includes('text.split(/[?#]/,1)[0]')){fs.writeFileSync('readiness.mjs',s);const{normalize}=await import('./readiness.mjs');assert.equal(normalize(longUrl).url,'https://m.bunjang.co.kr/products/405399188');assert.throws(()=>normalize('https://zigzag.kr/catalog/%5Cproducts/12345'));ready=true;console.log('ENCODED_SHARING_URL_READY');break;}await new Promise(r=>setTimeout(r,5000));}assert.ok(ready,'Expected sharing URL fix not ready');
+          const r=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/312c37b17bb0907893c4e47ef02a774ccef7f4cb/.github/workflows/fatfatpig-multiplatform-acceptance.yml',{signal:AbortSignal.timeout(15000)});assert.equal(r.status,200);const yaml=await r.text(),marker="          node --input-type=module <<'JS'\n";assert.ok(yaml.includes(marker));let code=yaml.split(marker)[1].split('\n          JS')[0].split('\n').map(s=>s.startsWith('          ')?s.slice(10):s).join('\n');
+          const original="const apiCases=[",newApi="const apiCases=[['bunjang',"+JSON.stringify(longUrl)+",'quoted'],";assert.ok(code.includes(original));code=code.replace(original,newApi);
+          const browserStart="const cases=[",newBrowser="const cases=[ ["+JSON.stringify(longUrl)+",'quoted'],";assert.ok(code.includes(browserStart));code=code.replace(browserStart,newBrowser);
+          fs.writeFileSync('final-acceptance.mjs',code);await import('./final-acceptance.mjs');
+          JS
+      - name: Save final exact-source and live acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-multiplatform-v5-final-acceptance
+          path: evidence/
+          retention-days: 7
