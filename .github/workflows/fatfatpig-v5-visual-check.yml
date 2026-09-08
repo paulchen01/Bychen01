@@ -1,0 +1,31 @@
+name: Fat Fat Pig v5 CJK visual check
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-v5-visual-check.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Install CJK font and pinned browser test dependency
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Check public site Chinese layout and result states
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import{chromium}from'playwright';import assert from'node:assert/strict';import fs from'node:fs';
+          const base='https://korea-quote-0908.vercel.app';const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          const results=[];
+          try{for(const width of [393,1440,320]){const page=await browser.newPage({viewport:{width,height:900}});await page.goto(base+'/?v=20260908-5',{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);assert.equal(await page.locator('#version').innerText(),'2026-09-08.5');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'evidence/home-'+width+'.png',fullPage:true});for(const[url,platform,status]of [['https://zigzag.kr/catalog/products/154413957','zigzag','quoted'],['https://fruitsfamily.com/product/6gnwx/wearhouse-t','fruits','needs_confirmation']]){await page.locator('#url').fill(url);const pending=page.waitForResponse(r=>r.url().includes('/api/quote?'),{timeout:60000});await page.locator('#go').click();const r=await pending,d=await r.json();assert.equal(d.status,status);await page.locator('#result:not([hidden])').waitFor();await page.evaluate(()=>document.fonts.ready);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#result-panel').screenshot({path:'evidence/'+platform+'-'+width+'.png'});results.push({width,platform,status,quote:d.quote,checkedAt:new Date().toISOString()});}await page.close();}}finally{await browser.close();fs.writeFileSync('evidence/report.json',JSON.stringify(results,null,2));}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fatfatpig-v5-cjk-visual-check
+          path: evidence/
+          retention-days: 7
