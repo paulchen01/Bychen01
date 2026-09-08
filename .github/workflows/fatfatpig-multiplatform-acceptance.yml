@@ -1,0 +1,51 @@
+name: Fat Fat Pig multi-platform live acceptance
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-multiplatform-acceptance.yml']
+permissions: {contents: read}
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Install pinned isolated browser test dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Test deployed public site, real upstream data and LINE without login
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-08.5';
+          let ready=false,last;for(let i=0;i<24;i++){try{const r=await fetch(base+'/api/health',{redirect:'manual',signal:AbortSignal.timeout(15000)});last=await r.text();if(r.ok&&JSON.parse(last).version===version){ready=true;console.log('PRODUCTION_READY',last);break;}}catch(e){last=e.message}await new Promise(r=>setTimeout(r,5000));}assert.ok(ready,last);
+          for(const file of ['index.html','style.css','app.js','lib/quote.mjs','lib/pricing.mjs','lib/platforms.mjs','lib/extract.mjs','lib/inquiry.mjs','assets/brand.webp','assets/line-qr.png','assets/favicon.svg']){const r=await fetch(base+'/'+(file==='index.html'?'':file),{redirect:'manual',signal:AbortSignal.timeout(15000)});assert.equal(r.status,200,file);const b=Buffer.from(await r.arrayBuffer());fs.writeFileSync('evidence/source/'+file,b);const sha=createHash('sha256').update(b).digest('hex');console.log('SOURCE',JSON.stringify({file,bytes:b.length,sha}));if(file==='assets/brand.webp')assert.equal(sha,'86ea0745abd440aa68a81f114c103a2859172dc1a31e7251c19d2c7a564d8a6f');}
+          const {normalize,PLATFORMS}=await import('./evidence/source/lib/platforms.mjs');const{calculate}=await import('./evidence/source/lib/pricing.mjs');
+          assert.equal(PLATFORMS.length,6);assert.equal(calculate(28000,4000).totalTwd,910);assert.equal(calculate(10000,4000).totalTwd,419);assert.equal(calculate(680000,4000).totalTwd,18000);
+          const apiCases=[['bunjang','https://m.bunjang.co.kr/products/405399188','quoted'],['bunjang','https://m.bunjang.co.kr/products/423628860','quoted'],['bunjang','https://m.bunjang.co.kr/products/429362102','quoted'],['zigzag','https://zigzag.kr/catalog/products/158650828','quoted'],['poca','https://pocamarket.com/search/detail/505461','needs_confirmation'],['x','https://x.com/Interior/status/463440424141459456','needs_confirmation'],['naver','https://shopping.naver.com/home','needs_confirmation']];
+          const report={version,api:[],browser:[],mockedNetwork:false};
+          for(const [platform,url,status]of apiCases){const start=Date.now(),r=await fetch(base+'/api/quote?url='+encodeURIComponent(url),{redirect:'manual',signal:AbortSignal.timeout(55000)}),d=await r.json();assert.equal(r.status,200,JSON.stringify(d));assert.equal(d.ok,true);assert.equal(d.version,version);assert.equal(d.product.platformId,platform);assert.equal(d.status,status,JSON.stringify(d));if(status==='quoted'){assert.equal(d.product.currency,'KRW');assert.deepEqual(d.quote,calculate(d.product.priceKrw,d.product.shippingKrw));}else assert.equal(d.quote,null);if(platform==='zigzag')assert.equal(d.product.priceKrw,4900,'First-order coupon must not replace normal price');report.api.push({url,ms:Date.now()-start,data:d});console.log('LIVE_API_PASS',JSON.stringify(report.api.at(-1)));}
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          try{for(const width of [393,1440,320]){
+            const c=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']}),page=await c.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+            const response=await page.goto(base+'/?v=20260908-5',{waitUntil:'networkidle',timeout:30000});assert.equal(response.status(),200);assert.ok(page.url().startsWith(base+'/'));assert.equal(await page.locator('#version').innerText(),version);assert.equal(await page.locator('[data-platform]').count(),6);assert.equal(await page.locator('#feeTiers tr').count(),5);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'evidence/home-'+width+'.png',fullPage:true});
+            const cases=[['https://www.zigzag.kr/app/catalog/products/154413957?utm_source=share','quoted'],['https://fruitsfamily.com/product/6gnwx/wearhouse-t?ref=share','needs_confirmation']];
+            if(width===393)cases.push(['https://pocamarket.com/search/detail/505461','needs_confirmation']);
+            if(width===320)cases.push(['https://x.com/Interior/status/463440424141459456','needs_confirmation']);
+            for(const [url,status]of cases){
+              await page.locator('#url').fill(url);assert.ok((await page.locator('#detected').innerText()).includes(normalize(url).platformName));
+              const waiting=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:60000});await page.locator('#go').click();const response=await waiting,d=await response.json();assert.equal(response.status(),200,JSON.stringify(d));assert.equal(d.status,status);await page.locator('#result:not([hidden])').waitFor();
+              if(status==='quoted'){assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(d.quote.totalTwd));assert.equal(await page.locator('#pendingBlock').isVisible(),false);assert.equal(await page.locator('#quoteComplete').isVisible(),true);}else{assert.equal(await page.locator('#quoteComplete').isVisible(),false);assert.equal(await page.locator('#pendingBlock').isVisible(),true);assert.equal(await page.locator('#total').innerText(),'');if(d.product.platformId==='fruits'){assert.equal(d.product.priceKrw,38000);assert.equal(d.product.shippingKrw,null);assert.equal(await page.locator('#knownPrice').innerText(),'₩38,000');}}
+              await page.locator('#requestNote').fill('1 件 & 請確認款式');const href=await page.locator('#lineInquiry').getAttribute('href'),line=new URL(href),text=decodeURIComponent(line.search.slice(1));assert.equal(decodeURIComponent(line.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes(d.product.url));assert.ok(text.includes('1 件 & 請確認款式'));assert.equal(await page.locator('#mobileLine').getAttribute('href'),href);if(status==='needs_confirmation'){assert.ok(text.includes('尚未產生台幣報價'));assert.ok(!text.includes('預估台幣：'));}
+              await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+              await page.locator('#result-panel').screenshot({path:'evidence/'+d.product.platformId+'-'+width+'.png'});report.browser.push({width,url,status,product:d.product,quote:d.quote,clipboardPassed:true,linePassed:true,noOverflow:true,errors});console.log('LIVE_BROWSER_PASS',JSON.stringify(report.browser.at(-1)));
+            }
+            await page.locator('#url').fill('https://evil.invalid/');await page.locator('#go').click();await page.locator('#error:not([hidden])').waitFor();assert.equal(await page.locator('#result').isVisible(),false);assert.equal(await page.locator('#mobileLine').getAttribute('href'),'https://line.me/R/ti/p/%40fatfatpig_kr');await c.close();
+          }}finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));await browser.close();}
+          JS
+      - name: Save verifiable sources, screenshots and test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-multiplatform-v5-live-acceptance
+          path: evidence/
+          retention-days: 7
