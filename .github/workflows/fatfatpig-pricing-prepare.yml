@@ -1,0 +1,29 @@
+name: Prepare Fat Fat Pig tiered pricing v4
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fatfatpig-pricing-prepare.yml'
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download pinned preparation script
+        run: |
+          curl --fail --silent --show-error --max-time 30 'https://raw.githubusercontent.com/paulchen01/Bychen01/da22cfdf96050c8c2585d083eca820db049c6f73/korea-quote/releases/prepare-20260908-4.mjs' -o prepare.mjs
+      - name: Verify original artwork and sources, apply fee update, test boundaries and save snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node prepare.mjs
+      - name: Save reproducible source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-pricing-prepared-v4
+          path: |
+            prepared-output/
+            prepared-site/
+          retention-days: 7
