@@ -1,0 +1,27 @@
+name: Prepare verified Korean-price source v8
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v8-prepare.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Fetch immutable preparation recipe
+        run: curl --fail --silent --show-error --max-time 30 'https://raw.githubusercontent.com/paulchen01/Bychen01/e1ac192d2cb0fa09ee204e50a05f41906a1d3bd2/korea-quote/releases/prepare-20260908-8.py' -o prepare.py
+      - name: Verify every modified and preserved source before committing snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python prepare.py
+      - name: Save reproducible source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v8-prepared-source
+          path: |
+            prepared-site/
+            prepared-v8.json
+          retention-days: 7
