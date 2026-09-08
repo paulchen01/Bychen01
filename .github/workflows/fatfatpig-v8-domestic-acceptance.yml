@@ -1,0 +1,57 @@
+name: Verify domestic-price resolution v8
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v8-domestic-acceptance.yml']
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install isolated browser and Chinese fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Test public production with real product data and no login
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-08.8';
+          const hash=b=>createHash('sha256').update(b).digest('hex');let ready=false,last;
+          for(let i=0;i<18;i++){try{const r=await fetch(base+'/api/health',{redirect:'manual',signal:AbortSignal.timeout(10000)}),d=await r.json();last=d;if(r.ok&&d.version===version){assert.equal(d.exchangeRate,38);assert.equal(d.pricingVersion,'2026-09-08.4');assert.equal(d.unknownShippingPolicy,'estimate_product_only');assert.equal(d.domesticPricePolicy,'verified-korean-listing-v1');assert.equal(d.fxConversionUsed,false);ready=true;console.log('PUBLIC_DEPLOYMENT_READY',JSON.stringify(d));break;}}catch(e){last={error:e.message};}await new Promise(r=>setTimeout(r,4000));}assert.ok(ready,JSON.stringify(last));
+          const releaseUrl='https://raw.githubusercontent.com/paulchen01/Bychen01/662a7c25b09f5b0b320a8723ddd0196f487ba7cf/korea-quote/releases/site-20260908-8.json';
+          const rr=await fetch(releaseUrl),rb=Buffer.from(await rr.arrayBuffer());assert.equal(hash(rb),'979929fb4460d98b00e537e5ce1edd4ff0207f860e8b214625efa79b7ceb9912');const release=JSON.parse(rb);
+          for(const[file,want]of Object.entries(release.hashes)){if(file.startsWith('api/')||file==='package.json')continue;const r=await fetch(base+'/'+file,{redirect:'manual',signal:AbortSignal.timeout(15000)});assert.equal(r.status,200,file);const b=Buffer.from(await r.arrayBuffer());assert.equal(hash(b),want,file);fs.writeFileSync('evidence/source/'+file,b);console.log('LIVE_SOURCE_MATCH',file,want);}
+          const {normalize}=await import('./evidence/source/lib/platforms.mjs');const {validDomesticProof}=await import('./evidence/source/lib/domestic.mjs');const {quoteForProduct,estimateFromAmounts}=await import('./evidence/source/lib/estimate.mjs');
+          const responses={};
+          async function quote(url){const r=await fetch(base+'/api/quote?url='+encodeURIComponent(url),{redirect:'manual',signal:AbortSignal.timeout(55000)});assert.equal(r.status,200);const d=await r.json();assert.equal(d.ok,true);assert.equal(d.version,version);responses[url]=d;console.log('LIVE_PRODUCT',JSON.stringify({input:url,...d}));return d;}
+          const global='https://globalbunjang.com/product/405399188',local='https://m.bunjang.co.kr/products/405399188';
+          const g=await quote(global);assert.equal(g.status,'quoted');assert.equal(g.product.originalUrl,global);assert.equal(g.product.url,local);assert.equal(g.product.currency,'KRW');assert.equal(g.product.domesticResolution.method,'bunjang_same_product_id');assert.equal(g.product.domesticResolution.fxConversionUsed,false);assert.ok(validDomesticProof(g.product));assert.deepEqual(g.quote,quoteForProduct(g.product));
+          const original=await quote(local);assert.equal(original.quote.totalTwd,g.quote.totalTwd);assert.equal(original.product.originalUrl,local);assert.equal(original.product.domesticResolution,undefined);
+          const second=await quote('https://globalbunjang.com/product/360813919');assert.ok(validDomesticProof(second.product));assert.equal(second.product.url,'https://m.bunjang.co.kr/products/360813919');assert.deepEqual(second.quote,quoteForProduct(second.product));
+          const fruit=await quote('https://fruitsfamily.com/product/6gnwx/wearhouse-t');assert.equal(fruit.product.currency,'KRW');assert.deepEqual(fruit.quote,quoteForProduct(fruit.product));assert.ok(fruit.quote);if(fruit.product.shippingKrw===null){assert.equal(fruit.status,'estimated');assert.equal(fruit.quote.shippingExcluded,true);}
+          const poca=await quote('https://pocamarket.com/search/detail/505461');assert.equal(poca.status,'needs_confirmation');assert.equal(poca.quote,null);assert.equal(poca.product.priceKrw,null);assert.equal(poca.product.domesticResolution.status,'unavailable');assert.equal(poca.product.domesticResolution.fxConversionUsed,false);assert.equal(poca.product.reasonCode,'DOMESTIC_PRICE_UNAVAILABLE');
+          const bad=await fetch(base+'/api/quote?url='+encodeURIComponent('https://globalbunjang.com.evil.invalid/product/405399188'));assert.equal(bad.status,422);assert.equal((await bad.json()).ok,false);
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});const tests=[];
+          try{for(const width of [393,1440,320]){
+            const context=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+            const r=await page.goto(base+'/?v=20260908-8',{waitUntil:'networkidle',timeout:30000});assert.equal(r.status(),200);await page.evaluate(()=>document.fonts.ready);assert.equal(await page.locator('#version').innerText(),version);assert.equal(await page.evaluate(()=>document.querySelector('.hero').nextElementSibling.id),'quote-form');assert.equal(await page.locator('#platformDirectory').count(),0);assert.equal(await page.locator('#rate').innerText(),'38');
+            await page.locator('#url').fill(global+'?utm_source=test');const pending=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:60000});await page.locator('#go').click();const qr=await pending,d=await qr.json();assert.equal(qr.status(),200);assert.equal(d.product.domesticResolution.status,'verified');await page.locator('#result:not([hidden])').waitFor();assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(d.quote.totalTwd));
+            assert.equal(await page.locator('#source').getAttribute('href'),local);assert.equal(await page.locator('#originalSource').getAttribute('href'),global);assert.ok(await page.locator('#domesticProof').isVisible());assert.ok((await page.locator('#domesticProofText').innerText()).includes('不是由美金換算'));assert.equal(await page.locator('#pendingBlock').isVisible(),false);
+            await page.locator('#requestNote').fill('1 件，請確認韓國版原價');const u=new URL(await page.locator('#lineInquiry').getAttribute('href')),text=decodeURIComponent(u.search.slice(1));assert.equal(decodeURIComponent(u.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(text.includes(global));assert.ok(text.includes(local));assert.ok(text.includes('非美元換算'));assert.ok(text.includes('÷38'));await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),text);assert.equal(await page.locator('#mobileLine').getAttribute('href'),u.href);
+            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);await page.locator('#result-panel').screenshot({path:'evidence/domestic-result-'+width+'.png'});await page.screenshot({path:'evidence/domestic-page-'+width+'.png',fullPage:true});
+            await page.locator('.manual-details summary').click();await page.locator('#p').fill('1300000');await page.locator('#s').fill('');await page.locator('#manual button').click();assert.equal(await page.locator('#total').innerText(),'34,211');assert.ok((await page.locator('#priceScope').innerText()).includes('未含韓國'));assert.equal(await page.locator('#domesticProof').isVisible(),false);assert.equal(estimateFromAmounts(1300000,null).totalTwd,34211);assert.deepEqual(errors,[]);
+            const record={width,version,unauthenticated:true,mockedNetwork:false,globalUrl:global,domesticUrl:local,quote:d.quote,domesticResolution:d.product.domesticResolution,copyPassed:true,lineProvenancePassed:true,unknownShippingEstimatePassed:true,noHorizontalOverflow:true,javascriptErrors:errors,checkedAt:new Date().toISOString()};tests.push(record);console.log('LIVE_BROWSER_PASS',JSON.stringify(record));await context.close();
+          }}finally{fs.writeFileSync('evidence/report.json',JSON.stringify({version,responses,tests},null,2));await browser.close();}
+          JS
+      - name: Save verifiable live response and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v8-domestic-live-validation
+          path: evidence/
+          retention-days: 7
