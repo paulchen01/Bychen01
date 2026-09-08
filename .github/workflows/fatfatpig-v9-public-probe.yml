@@ -1,0 +1,32 @@
+name: Inspect public Olive Young and Musinsa quote sources
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v9-public-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect bounded public responses without login
+        run: |
+          mkdir -p evidence/live
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const sources=[['olive-mobile','https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000249451'],['olive-web','https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000249451'],['musinsa-cart','https://www.musinsa.com/order/cart'],['musinsa-home','https://www.musinsa.com/main/musinsa/recommend']];
+          async function get(name,url,reader=false){try{const r=await fetch(reader?'https://r.jina.ai/'+url:url,{headers:reader?{Accept:'application/json','X-Engine':'browser','X-Respond-With':'markdown','X-Timeout':'20','X-No-Cache':'true'}:{Accept:'text/html,application/json','Accept-Language':'ko-KR,ko;q=0.9'},signal:AbortSignal.timeout(reader?45000:18000)}),s=await r.text();if(s.length>3000000)throw Error('response too large');fs.writeFileSync('evidence/'+name+(reader?'-reader.json':'.txt'),s);let data;try{data=JSON.parse(s).data;}catch{}console.log('PUBLIC_RESPONSE',JSON.stringify({name,reader,status:r.status,url:r.url,bytes:s.length,title:s.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||data?.title,meta:[...s.matchAll(/<meta\b[^>]*>/gi)].map(m=>m[0]).filter(t=>/price|currency|og:title|og:url/.test(t)).slice(0,15),detailLinks:[...new Set([...s.matchAll(/https:\/\/(?:www\.)?musinsa\.com\/(?:products|app\/goods)\/\d+/g)].map(m=>m[0]))].slice(0,3),content:data?.content?.slice(0,18000)}));return s;}catch(e){console.log('PUBLIC_ERROR',name,e.message);return '';}}
+          await Promise.all(sources.map(([n,u])=>get(n,u)));
+          await Promise.all(sources.slice(0,3).map(([n,u])=>get(n,u,true)));
+          const home=fs.readFileSync('evidence/musinsa-home.txt','utf8');const detail=home.match(/https:\/\/(?:www\.)?musinsa\.com\/(?:products|app\/goods)\/\d+/)?.[0]||home.match(/(?:href|url)=["'](\/products\/\d+)/)?.[1];if(detail){const u=new URL(detail,'https://www.musinsa.com').href;await Promise.all([get('musinsa-product',u),get('musinsa-product',u,true)]);}
+          const base='https://korea-quote-0908.vercel.app';for(const file of ['index.html','app.js','style.css','api/health','lib/platforms.mjs','lib/estimate.mjs','lib/extract.mjs','lib/inquiry.mjs','lib/domestic.mjs','lib/pricing.mjs']){try{const r=await fetch(base+'/'+file,{signal:AbortSignal.timeout(12000)}),s=await r.text();if(!r.ok)throw Error('HTTP '+r.status);const path='evidence/live/'+file;fs.mkdirSync(path.substring(0,path.lastIndexOf('/')),{recursive:true});fs.writeFileSync(path,s);console.log('LIVE_SOURCE',file,createHash('sha256').update(s).digest('hex'),file==='api/health'?s:'');}catch(e){console.log('LIVE_SOURCE_ERROR',file,e.message);}}
+          JS
+      - name: Save public source fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v9-public-probe
+          path: evidence/
+          retention-days: 7
