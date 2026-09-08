@@ -1,0 +1,61 @@
+import json,base64,hashlib,os,urllib.request,pathlib
+root=pathlib.Path('prepared-site');root.mkdir(exist_ok=True)
+def fetch(url):
+    with urllib.request.urlopen(url,timeout=30) as r:return r.read()
+sha=lambda b:hashlib.sha256(b).hexdigest()
+base=fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/5e80525ba7a8f5f251e43b60bda5b969a8dc9a01/korea-quote/releases/site-20260908-7.json')
+assert sha(base)=='a567c6515ee9c20a16957042a38c01044aa474a22ee36eae2b6e55044867b694'
+for f in json.loads(base)['files']:
+    p=root/f['file'];p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(base64.b64decode(f['data']) if f['encoding']=='base64' else f['data'].encode())
+(root/'lib/domestic.mjs').write_bytes(fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/19f8e7c9cc0e262b3e7c26533fbd32d1c694b7ee/korea-quote/releases/domestic-20260908-8.mjs'))
+p=root/'lib/platforms.mjs';s=p.read_text();s=s.replace("'2026-09-08.7'","'2026-09-08.8'")
+s=s.replace("'www.bunjang.co.kr']","'www.bunjang.co.kr','globalbunjang.com','www.globalbunjang.com']")
+s=s.replace("'www.pocamarket.com']","'www.pocamarket.com','phocamarket.com','www.phocamarket.com']")
+s=s.replace("  const p=u.pathname;", "  const p=u.pathname;\n  const globalBunjang=platformId==='bunjang'&&/^(?:www\\.)?globalbunjang\\.com$/.test(u.hostname);\n  const koreanPoca=platformId==='poca'&&/^(?:www\\.)?phocamarket\\.com$/.test(u.hostname);\n  const market=globalBunjang||(platformId==='poca'&&!koreanPoca)?'global':'kr';")
+s=s.replace("u.hostname='m.bunjang.co.kr';if((m=p.match(/^\\/products\\/(\\d{5,15})\\/?$/))){id=m[1];kind='product';u.pathname='/products/'+id;}","u.hostname=globalBunjang?'globalbunjang.com':'m.bunjang.co.kr';if((m=p.match(globalBunjang?/^\\/products?\\/(\\d{5,15})\\/?$/:/^\\/products\\/(\\d{5,15})\\/?$/))){id=m[1];kind='product';u.pathname=(globalBunjang?'/product/':'/products/')+id;}")
+s=s.replace("u.hostname='pocamarket.com';if((m=p.match", "u.hostname=koreanPoca?'phocamarket.com':'pocamarket.com';if((m=p.match")
+s=s.replace("  u.search=query.toString();", "  // Preserve only explicit display preferences, not tracking or arbitrary redirect tokens.\n  if(kind==='product')for(const k of ['currency','lang','locale']){const v=u.searchParams.get(k);if(v&&/^[a-zA-Z]{2,3}(?:[-_][a-zA-Z]{2})?$/.test(v))query.set(k,v);}\n  u.search=query.toString();")
+s=s.replace("return {platformId,platformName:platform.name,id,kind,url:u.href,key:platformId+':'+", "return {platformId,platformName:platform.name,id,kind,market,url:u.href,key:platformId+':'+(koreanPoca?'kr:':'')+")
+p.write_text(s)
+p=root/'api/quote.js';s=p.read_text();s=s.replace("const cache=new Map()", "import {directDomesticTarget,resolveDomesticPrice,validateDomesticProduct} from '../lib/domestic.mjs';\nconst cache=new Map()")
+s=s.replace("let target=original,html=null,p;", "let target=original,html=null,p;\n  const direct=directDomesticTarget(original);if(direct)target=direct.target;")
+s=s.replace("    return {...p,originalUrl:original.url,fetchedAt:new Date().toISOString(),fromCache:false};", "    if(direct){p=validateDomesticProduct(p,original,target,direct.method);}\n    else if(target.kind==='product'&&(target.market==='global'||(p.currency&&p.currency!=='KRW'))){\n      p=await resolveDomesticPrice(p,original,html||'',async candidate=>{\n        const page=await publicPage(candidate,fetchImpl,deadline);\n        const parser={fruits:parseFruits,zigzag:parseZigzag,naver:parseNaver,poca:parsePoca}[candidate.platformId];\n        if(!parser)throw new PlatformError('DOMESTIC_UNAVAILABLE','尚無此韓國版的商品解析器。');\n        return parser(page.html,page.target.url);\n      });\n    }\n    return {...p,originalUrl:original.url,priceSourceUrl:p.currency==='KRW'?p.url:null,fetchedAt:new Date().toISOString(),fromCache:false};")
+s=s.replace("return confirmation(target,notice,known?e.code:'UPSTREAM_UNAVAILABLE',{originalUrl:original.url,checkedAt:new Date().toISOString()});", "return confirmation(target,notice,known?e.code:'UPSTREAM_UNAVAILABLE',{originalUrl:original.url,checkedAt:new Date().toISOString(),...(direct?{domesticResolution:{status:'unavailable',method:direct.method,inputUrl:original.url,domesticUrl:target.url,reason:'DOMESTIC_FETCH_FAILED'}}:{})});")
+s=s.replace('cache.get(target.key)','cache.get(target.url)').replace('pending.has(target.key)','pending.has(target.url)').replace('pending.get(target.key)','pending.get(target.url)').replace('pending.set(target.key,work)','pending.set(target.url,work)').replace('cache.set(target.key,','cache.set(target.url,').replace('pending.delete(target.key)','pending.delete(target.url)')
+p.write_text(s)
+p=root/'lib/estimate.mjs';s=p.read_text();s=s.replace("import {calculate,formulaText,feeDescription} from './pricing.mjs';", "import {calculate,formulaText,feeDescription} from './pricing.mjs';\nimport {validDomesticProof} from './domestic.mjs';")
+s=s.replace("  if(p.status!=='quoted'", "  if(p.domesticResolution&&!validDomesticProof(p))return null;\n  if(p.market==='global'&&!p.domesticResolution)return null;\n  if(p.status!=='quoted'")
+p.write_text(s)
+p=root/'lib/extract.mjs';s=p.read_text();needle="  // Global Pocamarket lists amounts in USD and storage/shipping charges separately."
+s=s.replace(needle,"  if(t.market==='kr'&&ld){\n    const offers=arr(ld.offers);\n    if(offers.length!==1||offers[0]['@type']==='AggregateOffer')return pending(p,'韓國版有多種商品價格，請先確認規格。','PRICE_AMBIGUOUS');\n    if(offers[0].availability&&!/\\/(?:InStock|PreOrder)$/.test(offers[0].availability))return pending(p,'韓國版商品目前不在可確認的販售狀態。','UNAVAILABLE_PRODUCT');\n    p.shippingKrw=shipLD(offers)??descriptionShipping(ld.description);\n    p.evidence={price:'韓國版主商品 Offer.price / priceCurrency',shipping:p.shippingKrw===null?'未標示':'韓國版主商品運費'};\n    return ready(p);\n  }\n"+needle)
+s=s.replace("  p.currency=currency==='원'||currency==='원~'?'KRW':null;\n  p.priceKrw=amount(normal?.price);p.sourcePrice=p.priceKrw;", "  p.currency=currency==='원'||currency==='원~'?'KRW':typeof currency==='string'&&currency.trim()?'FOREIGN':null;\n  p.sourcePrice=normal?.price!=null&&Number.isFinite(Number(normal.price))?Number(normal.price):null;\n  p.priceKrw=p.currency==='KRW'?amount(normal?.price):null;")
+p.write_text(s)
+p=root/'index.html';s=p.read_text();s=s.replace('20260908-7','20260908-8').replace('2026-09-08.7','2026-09-08.8')
+needle='<div id="quoteComplete">';assert s.count(needle)==1
+s=s.replace(needle,'<div id="domesticProof" class="domestic-proof" hidden><span id="domesticProofText"></span><a id="originalSource" class="source" target="_blank" rel="noopener noreferrer" hidden>查看國際版原連結 ↗</a></div>'+needle)
+p.write_text(s)
+p=root/'style.css';s=p.read_text();s+='\n/* Compact source provenance; no new homepage directory. */\n.domestic-proof{margin:0 0 18px;padding:12px 15px;border:1px solid #dce4ce;border-radius:12px;background:#eff3e8;color:#526347;font-size:12px;line-height:1.8;overflow-wrap:anywhere}.domestic-proof .source{display:inline-block;margin-top:5px;margin-left:8px;font-size:11px}.domestic-proof.unresolved{background:#f8f0df;border-color:#e9dbbc;color:#856739}\n';p.write_text(s)
+p=root/'app.js';s=p.read_text();s=s.replace("import {BRAND,CONTACT_URL", "import {validDomesticProof} from './lib/domestic.mjs';\nimport {BRAND,CONTACT_URL")
+s=s.replace("if(t)$('detected').textContent='✓ 已辨識 '+t.platformName+", "if(t)$('detected').textContent='✓ 已辨識 '+t.platformName+(t.market==='global'?' · 將查找韓國版原價':'')+")
+needle="  $('quoteComplete').hidden=!q;";assert s.count(needle)==1
+s=s.replace(needle,"  const resolution=p.domesticResolution;\n  $('domesticProof').hidden=!resolution;\n  $('domesticProof').classList.toggle('unresolved',resolution?.status!=='verified');\n  $('domesticProofText').textContent=resolution?.status==='verified'?'已取得同款韓國版原價（KRW），不是由美金換算。':resolution?'已檢查韓國版；尚無可核對的韓幣原價。':'';\n  $('source').textContent=resolution?.status==='verified'?'查看韓國版原商品 ↗':'查看原商品 ↗';\n  $('originalSource').hidden=resolution?.status!=='verified'||!p.originalUrl||p.originalUrl===p.url;\n  if(!$('originalSource').hidden)$('originalSource').href=normalize(p.originalUrl).url;\n"+needle)
+s=s.replace("if(target.kind!=='short'&&returned.key!==target.key)","if(target.kind!=='short'&&returned.key!==target.key&&!(validDomesticProof(d.product)&&d.product.domesticResolution?.status==='verified'&&normalize(d.product.domesticResolution.inputUrl).url===target.url))")
+p.write_text(s)
+p=root/'lib/inquiry.mjs';s=p.read_text();s=s.replace("import { normalize }", "import {validDomesticProof} from './domestic.mjs';\nimport { normalize }")
+s=s.replace("  const excluded=quote.shippingExcluded===true;", "  if(product.domesticResolution&&!validDomesticProof(product))throw new Error('韓國版來源未通過核對，不能將此金額傳為正式估價。');\n  const excluded=quote.shippingExcluded===true;")
+s=s.replace("title,url,\n", "title,url,\n    product.domesticResolution?.status==='verified'?'價格來源：同款韓國國內版原價 KRW（非美元換算）':'',\n    product.domesticResolution?.status==='verified'&&product.originalUrl!==url?'客人原連結：'+normalize(product.originalUrl).url:'',\n")
+p.write_text(s)
+p=root/'api/health.js';s=p.read_text().replace("unknownShippingPolicy:'estimate_product_only',", "unknownShippingPolicy:'estimate_product_only',domesticPricePolicy:'verified-korean-listing-v1',internationalResolution:'bunjang_id_or_verified_korean_alternate',fxConversionUsed:false,");p.write_text(s)
+(root/'package.json').write_text(json.dumps({'name':'korea-quote-0908','version':'1.0.8','type':'module','engines':{'node':'22.x'},'scripts':{'test':'node --test tests/*.test.mjs','build':'node build.mjs'}},indent=2)+'\n')
+expected={'api/health.js':'a89e41b4ff650864470def791a1428cc74ddd72532fe27446f304fa7197fd9bb','api/quote.js':'d94579cd3f5e8a2b57e7d8632853463c6129ccdcc60df768bd76fcd6e141015c','app.js':'d8bdb9650211fca7789ef91c41c71a92b19444f8c890982f0a005558c31eb2b3','assets/brand.webp':'86ea0745abd440aa68a81f114c103a2859172dc1a31e7251c19d2c7a564d8a6f','assets/favicon.svg':'7fa8bcf2eca3ec23bc3731c087ef598c498020ac15d8180870ecc38dd411ab5a','assets/line-qr.png':'c9d42ee7057f9bc8eb282e5d34860a622cc7681b56bbe6860603c1656aef8fec','index.html':'193a1d36205dd87d3606942754319ffec7f3fd5bed1d6e164b0f79fe04ecde2e','lib/domestic.mjs':'8a0db52a432fd8c560af8ab79bf0e758521c49e90319bc1b5bdac8a8ea2c235d','lib/estimate.mjs':'9e0d4dfaa15881ea78034a1974e917ef663967895b5667509549d5582433f110','lib/extract.mjs':'ba6b81068febcec866447362edb11ee7a2b76364fef75d859d66ecaa0d7944cb','lib/inquiry.mjs':'f8767659ef1268c6aac57f2f29389a437c06c8091e2ee0e739a1d3d0e8794a16','lib/platforms.mjs':'186b567ba9fa48cb5c4b91bc230232e2a8712bf76f8d3c36e76adf50ed653eb3','lib/pricing.mjs':'dbba85432912d14ccd97011cb8303a52eb38969c46da8b549334d6f61206ae1e','lib/quote.mjs':'35d576dd8bcb2cd7ba08f8b9cdee2bfc5af48dd40d43fde39d5e812219c71cb0','package.json':'8ab092703fd69ddbfe9a454399bbb49206d722512f59ddcfd97c67e128bfef49','style.css':'6270f50b1befc525b49ca0730ddefbce2b7d3f79d834bf66f2b275e1e893edc8'}
+files=[]
+for name,want in expected.items():
+    data=(root/name).read_bytes();actual=sha(data);print('VERIFIED_SOURCE',name,actual,flush=True);assert actual==want,(name,actual,want)
+    files.append({'file':name,'encoding':'base64','data':base64.b64encode(data).decode()})
+raw=json.dumps({'version':'2026-09-08.8','hashes':expected,'files':files},ensure_ascii=False,separators=(',',':')).encode()
+pathlib.Path('prepared-v8.json').write_bytes(raw)
+token=os.environ['GITHUB_TOKEN']
+body=json.dumps({'message':'Save tested v8 domestic-price source snapshot','content':base64.b64encode(raw).decode()}).encode()
+req=urllib.request.Request('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260908-8.json',data=body,headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},method='PUT')
+with urllib.request.urlopen(req,timeout=30) as r: result=json.load(r)
+print('PREPARED_RELEASE',json.dumps({'version':'2026-09-08.8','commit':result['commit']['sha'],'sha256':sha(raw),'files':len(files)}),flush=True)
