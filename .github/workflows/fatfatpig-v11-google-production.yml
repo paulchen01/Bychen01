@@ -1,0 +1,81 @@
+name: Verify Google ownership file on original production v11
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v11-google-production.yml']
+permissions:
+  contents: write
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install isolated browser dependency
+        run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Reconstruct immutable release and check public unauthenticated URLs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs/promises';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {chromium} from 'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-09.11',file='google4170efb46fe3af33.html',token='google-site-verification: '+file;
+          const hash=b=>createHash('sha256').update(b).digest('hex');
+          const report={base,version,deploymentId:'dpl_ksxQZsktVc1vJpxPSXEYAkYi6EvK',productionVerified:false,googleAccountVerification:'user_must_click_verify',checks:[],sources:{}};
+          async function get(url){const r=await fetch(url,{redirect:'manual',cache:'no-store',signal:AbortSignal.timeout(18000)});return {status:r.status,location:r.headers.get('location'),type:r.headers.get('content-type'),robots:r.headers.get('x-robots-tag'),bytes:Buffer.from(await r.arrayBuffer())};}
+          let browser;
+          try{
+            const recipe=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/70dfc75c0e84a92fa8fadfab81ed24a6aa1cf092/korea-quote/releases/prepare-20260909-11.mjs');
+            assert.equal(recipe.status,200);assert.equal(hash(recipe.bytes),'1990d6d0900d0fb31c4713df6a96cd660df0122188887c5e7d77a0976e5b6844');await fs.writeFile('prepare-v11.mjs',recipe.bytes);
+            const original=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/e2f023152b7f8a49824a2dff436cb5d2854ed080/korea-quote/'+file);
+            assert.equal(original.status,200);assert.equal(original.bytes.toString(),token);assert.equal(hash(original.bytes),'b0cc16cf33c20d78cd4278a90030f03aafaf461151d4695e836b1120bcd192ae');await fs.writeFile(file,original.bytes);await import('./prepare-v11.mjs');
+            const snapshot=JSON.parse(await fs.readFile('prepared-v11.json','utf8'));
+            let ready=false,last;
+            for(let i=0;i<24;i++){
+              try{const x=await get(base+'/api/health');last={status:x.status,body:x.bytes.toString().slice(0,500)};if(x.status===200){const h=JSON.parse(x.bytes);if(h.version===version){assert.equal(h.exchangeRate,38);assert.ok(h.platforms.some(p=>p.id==='oliveyoung'));assert.ok(h.platforms.some(p=>p.id==='musinsa'));report.health=h;ready=true;break;}}}catch(e){last={error:e.message};}
+              await new Promise(r=>setTimeout(r,4000));
+            }
+            assert.ok(ready,'Original production not ready: '+JSON.stringify(last));
+            for(const[file,want]of Object.entries(snapshot.hashes)){
+              if(file.startsWith('api/')||file==='package.json')continue;
+              const response=await get(base+'/'+file);assert.equal(response.status,200,file);assert.equal(response.location,null,file+' redirect');assert.equal(hash(response.bytes),want,file+' content differs');
+              assert.ok(!/noindex|none/i.test(response.robots||''),file+' X-Robots-Tag');
+              const local=path.join('evidence/source',file);await fs.mkdir(path.dirname(local),{recursive:true});await fs.writeFile(local,response.bytes);report.sources[file]=want;
+            }
+            const verification=await get(base+'/'+file);assert.equal(verification.bytes.toString(),token);assert.equal(verification.status,200);assert.equal(verification.location,null);
+            report.verification={url:base+'/'+file,status:200,redirect:false,bytes:verification.bytes.length,sha256:hash(verification.bytes),body:verification.bytes.toString(),authenticationRequired:false};
+            console.log('PUBLIC_VERIFICATION_FILE_OK',JSON.stringify(report.verification));
+            const robots=(await get(base+'/robots.txt')).bytes.toString();assert.ok(robots.includes('Allow: /'));assert.ok(!/^Disallow:\s*\/$/m.test(robots));assert.ok(robots.includes('Sitemap: '+base+'/sitemap.xml'));
+            const sitemap=(await get(base+'/sitemap.xml')).bytes.toString();assert.ok(sitemap.includes('<loc>'+base+'/</loc>'));assert.equal((sitemap.match(/<loc>/g)||[]).length,1);assert.ok(!sitemap.includes('?v='));
+            const html=(await get(base+'/')).bytes.toString();assert.ok(html.includes('<title>廢廢豬韓國代購｜韓國商品台幣估價・LINE 詢價</title>'));assert.ok(html.includes('<link rel="canonical" href="'+base+'/">'));assert.ok(html.includes('content="index,follow,max-image-preview:large"'));assert.ok(!/<meta[^>]+content="[^"]*noindex/i.test(html));assert.ok(!html.includes('class="hero-pills"'));assert.ok(!html.includes('platformDirectory'));
+            const jsonld=JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);assert.ok(jsonld['@graph'].some(x=>x['@type']==='WebSite'&&x.url===base+'/'));
+            report.checks.push('HTTP 200 and byte-identical Google file','robots allows homepage','single canonical homepage sitemap','title and description','WebSite and Organization JSON-LD','no noindex or authentication redirects');
+            browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [393,1440]){
+              const context=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const r=await page.goto(base+'/?v=20260909-11',{waitUntil:'networkidle',timeout:30000});assert.equal(r.status(),200);assert.equal(await page.locator('#version').innerText(),version);assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),base+'/');assert.equal(await page.locator('#rate').innerText(),'38');assert.equal(await page.evaluate(()=>document.querySelector('.hero').nextElementSibling.id),'quote-form');
+              await page.locator('.manual-details summary').click();await page.locator('#p').fill('170000');await page.locator('#s').fill('');await page.locator('#pf').fill('');await page.locator('#manual button').click();assert.equal(await page.locator('#total').innerText(),'4,608');assert.equal(await page.locator('#platformFee').innerText(),'未標示，本次未計入');
+              await page.locator('#copy').click();const text=await page.evaluate(()=>navigator.clipboard.readText());assert.ok(text.includes('38（本日匯率，匯率會浮動）'));assert.ok(text.includes('韓國平台手續費：未標示，本次未計入'));
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);report.checks.push({width,quote:4608,copyPassed:true,noJavascriptErrors:true});await context.close();
+            }
+            report.productionVerified=true;report.checkedAt=new Date().toISOString();
+            // Preserve the complete release, including the ownership file, for future deployments.
+            const endpoint='https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260909-11.json';
+            const releaseBytes=await fs.readFile('prepared-v11.json');const auth={'Authorization':'Bearer '+process.env.GITHUB_TOKEN,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
+            const prior=await fetch(endpoint,{headers:auth,signal:AbortSignal.timeout(15000)});
+            if(prior.status===404){const saved=await fetch(endpoint,{method:'PUT',headers:auth,body:JSON.stringify({message:'Save publicly verified v11 SEO release and persistent Google verification file',content:releaseBytes.toString('base64')}),signal:AbortSignal.timeout(20000)});assert.equal(saved.status,201);report.releaseCommit=(await saved.json()).commit.sha;}
+            else{assert.equal(prior.status,200);const old=await prior.json();assert.equal(hash(Buffer.from(old.content,'base64')),hash(releaseBytes));report.releaseAlreadyPreserved=true;}
+            console.log('SEO_PRODUCTION_ACCEPTANCE_SUCCESS',JSON.stringify(report));
+          }catch(e){report.error={message:e.message,stack:e.stack};throw e;}finally{await fs.writeFile('evidence/report.json',JSON.stringify(report,null,2));try{await fs.copyFile('prepared-v11.json','evidence/prepared-v11.json');}catch{}if(browser)await browser.close();}
+          JS
+      - name: Save public verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v11-google-production
+          path: evidence/
+          retention-days: 14
