@@ -1,0 +1,48 @@
+name: Validate retail fee v9 source (not production deployment)
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v9-source-validation.yml']
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install browser test dependency and CJK fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Test actual upstream reads using candidate source, not the production site
+        run: |
+          mkdir -p evidence/site
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import http from 'node:http';import{chromium}from'playwright';
+          const r=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/6950cc6755514fc5bd2a3d2d36d0d4691bc37536/korea-quote/releases/site-20260909-9.json');assert.equal(r.status,200);const b=Buffer.from(await r.arrayBuffer());assert.equal(createHash('sha256').update(b).digest('hex'),'603b54dfe5d386d247f023c0e70024dec96497a96936d464752a47537b1210f3');const release=JSON.parse(b);
+          for(const f of release.files){const file=path.join('evidence/site',f.file);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,Buffer.from(f.data,f.encoding==='base64'?'base64':'utf8'));}
+          const{default:handler,lookup}=await import('./evidence/site/api/quote.js');const{quoteForProduct,estimateFromAmounts}=await import('./evidence/site/lib/estimate.mjs');
+          const server=http.createServer(async(req,res)=>{try{if(req.url.startsWith('/api/quote?')){res.status=n=>{res.statusCode=n;return res;};res.json=d=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(d));};await handler(req,res);return;}const file=path.join('evidence/site',new URL(req.url,'http://localhost').pathname==='/'?'index.html':new URL(req.url,'http://localhost').pathname);const ext=path.extname(file),type={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'}[ext];res.setHeader('Content-Type',type||'text/plain');res.end(fs.readFileSync(file));}catch(e){res.statusCode=500;res.end(e.message);}});await new Promise(resolve=>server.listen(8765,'127.0.0.1',resolve));
+          const inputs=[['olive','https://m.oliveyoung.co.kr/m/goods/getGoodsDetail.do?goodsNo=A000000249451&t_page=브랜드관&t_click=테마별+상품+전시&t_number=1&trackingCd=Brand_ThemeShowcase_Product'],['musinsa','https://www.musinsa.com/products/484461'],['cart','https://www.musinsa.com/order/cart'],['fruits','https://fruitsfamily.com/product/6gnwx/wearhouse-t']];
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']}),report={deployedToProduction:false,sourceVersion:release.version,actualUpstreamReads:[],browser:[]};
+          try{
+            const context=await browser.newContext({viewport:{width:393,height:900},permissions:['clipboard-read','clipboard-write']});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:8765/',{waitUntil:'networkidle'});await page.evaluate(()=>document.fonts.ready);
+            for(const[name,url]of inputs){
+              await page.locator('#url').fill(url);const pending=page.waitForResponse(r=>r.url().includes('/api/quote?'),{timeout:65000});await page.locator('#go').click();const response=await pending,d=await response.json();assert.equal(response.status(),200);assert.equal(d.ok,true);assert.equal(d.version,'2026-09-09.9');await page.locator('#result:not([hidden])').waitFor();
+              if(name==='cart'){assert.equal(d.product.kind,'cart');assert.equal(d.quote,null);assert.ok((await page.locator('#pendingReason').innerText()).includes('購物車'));assert.equal(d.product.priceKrw,null);}else{assert.ok(d.quote,JSON.stringify(d));assert.equal(d.product.currency,'KRW');assert.equal(d.quote.totalTwd,quoteForProduct(d.product).totalTwd);assert.equal(await page.locator('#total').innerText(),new Intl.NumberFormat('zh-TW').format(d.quote.totalTwd));assert.ok((await page.locator('#platformFee').innerText()).includes('讀不到'));}
+              assert.ok((await page.locator('#inquiryPreview').innerText()).includes('韓國平台手續費'));assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#result-panel').screenshot({path:'evidence/'+name+'-393.png'});report.actualUpstreamReads.push({name,input:url,response:d});console.log('ACTUAL_UPSTREAM_SOURCE_PASS',JSON.stringify({name,...d}));
+            }
+            await context.close();
+            for(const width of [393,1440,320]){
+              const c=await browser.newContext({viewport:{width,height:900},permissions:['clipboard-read','clipboard-write']}),p=await c.newPage();await p.goto('http://127.0.0.1:8765/',{waitUntil:'networkidle'});await p.locator('.manual-details summary').click();await p.locator('#p').fill('28000');await p.locator('#s').fill('4000');await p.locator('#pf').fill('1900');await p.locator('#manual button').click();assert.equal(await p.locator('#total').innerText(),'960');assert.equal(await p.locator('#platformFee').innerText(),'₩1,900');await p.locator('#copy').click();assert.ok((await p.evaluate(()=>navigator.clipboard.readText())).includes('韓國平台手續費：₩1,900'));await p.locator('#pf').fill('');await p.locator('#manual button').click();assert.equal(await p.locator('#total').innerText(),'910');assert.ok((await p.locator('#platformFee').innerText()).includes('讀不到'));assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);report.browser.push({width,knownFeePassed:true,unknownFeePassed:true,copyPassed:true});await c.close();
+            }
+          }finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));await browser.close();await new Promise(resolve=>server.close(resolve));}
+          JS
+      - name: Save source test evidence (not production acceptance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v9-source-validation
+          path: evidence/
+          retention-days: 7
