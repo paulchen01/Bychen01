@@ -1,0 +1,49 @@
+name: Final original-site v9 production acceptance
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v9-production-final.yml']
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install browser and CJK fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Repeat strict public production checks and preserve any transient failure
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const r=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/815b03895b99fa152ac5bd3beba702aa5e7f2dd1/.github/workflows/fatfatpig-v9-production-8xr9aUYP.yml',{signal:AbortSignal.timeout(20000)});
+          assert.equal(r.status,200);
+          const yaml=await r.text(),marker="          node --input-type=module <<'JS'\n";
+          assert.ok(yaml.includes(marker));
+          let code=yaml.split(marker)[1].split('\n          JS')[0].split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+          const original='const response=await pending,d=await response.json();report.api.push';
+          assert.equal(code.split(original).length,2);
+          code=code.replace(original,`let response=await pending,d=await response.json();
+          if(name==='bunjang'&&!d.quote&&d.product?.reasonCode==='EMPTY_PAGE'){
+            report.transientRetries=[...(report.transientRetries||[]),{name,input:url,response:d,at:new Date().toISOString()}];
+            console.log('EMPTY_UPSTREAM_RETRY',JSON.stringify(report.transientRetries.at(-1)));
+            await new Promise(resolve=>setTimeout(resolve,17000));
+            const retried=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:65000});
+            await page.locator('#go').click();response=await retried;d=await response.json();
+          }
+          report.api.push`);
+          fs.writeFileSync('production-acceptance.mjs',code);
+          await import('./production-acceptance.mjs');
+          JS
+      - name: Save actual production responses and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v9-production-final
+          path: evidence/
+          retention-days: 7
