@@ -1,0 +1,48 @@
+name: Prepare Fat Fat Pig v10 customer wording
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v10-copy-prepare.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read pinned requested copy changes
+        run: curl --fail --silent --show-error --max-time 40 'https://raw.githubusercontent.com/paulchen01/Bychen01/416596df3f6d5da28818adda4198f831915b68fd/korea-quote/releases/prepare-20260909-10.py' -o prepare.py
+      - name: Build source snapshot with unchanged quote logic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python prepare.py
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {estimateFromAmounts} from './prepared-site/lib/estimate.mjs';
+          import {platformFeeText} from './prepared-site/lib/platform-fee.mjs';
+          import {inquiryText} from './prepared-site/lib/inquiry.mjs';
+          assert.equal(estimateFromAmounts(170000,null).totalTwd,4608);
+          assert.equal(estimateFromAmounts(28000,4000).totalTwd,910);
+          assert.equal(estimateFromAmounts(28000,4000,1900).totalTwd,960);
+          assert.equal(platformFeeText(null),'未標示，本次未計入');
+          assert.equal(platformFeeText(0),'₩0（已確認免平台費）');
+          const text=inquiryText({title:'測試'},estimateFromAmounts(170000,null),{manual:true});
+          assert.ok(text.includes('報價匯率：38（本日匯率，匯率會浮動）'));
+          assert.ok(text.includes('韓國平台手續費：未標示，本次未計入'));
+          const html=fs.readFileSync('prepared-site/index.html','utf8');
+          assert.ok(!html.includes('class="hero-pills"'));
+          assert.ok(html.includes('本估價網頁僅為廢廢豬韓國代購之初步報價查詢，非各拍賣平台官方服務。'));
+          assert.equal((html.match(/class="rate-note"/g)||[]).length,2);
+          console.log('V10_TEXT_AND_MATH_VERIFIED');
+          JS
+      - name: Save reproducible source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v10-copy-prepared
+          path: |
+            prepared-site/
+            prepared-v10.json
+          retention-days: 7
