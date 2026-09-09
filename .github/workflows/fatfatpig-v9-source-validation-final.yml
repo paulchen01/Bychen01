@@ -1,0 +1,36 @@
+name: Final retail fee v9 source validation (NOT production)
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-v9-source-validation-final.yml']
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install browser test dependency and CJK fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Run pinned source test with expanded preview and actual LINE link checks
+        run: |
+          mkdir -p evidence/site
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          const r=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/3861b2cb713f7c2035487431b8bce9e74ec7d7f2/.github/workflows/fatfatpig-v9-source-validation.yml');assert.equal(r.status,200);const yaml=await r.text();
+          const marker="          node --input-type=module <<'JS'\n";assert.ok(yaml.includes(marker));
+          let code=yaml.split(marker)[1].split('\n          JS')[0].split('\n').map(s=>s.startsWith('          ')?s.slice(10):s).join('\n');
+          const old="assert.ok((await page.locator('#inquiryPreview').innerText()).includes('韓國平台手續費'));";assert.ok(code.includes(old));
+          code=code.replace(old,"if(!await page.locator('.message-details').evaluate(el=>el.open))await page.locator('.message-details summary').click();await page.locator('#inquiryPreview').waitFor({state:'visible'});assert.ok((await page.locator('#inquiryPreview').innerText()).includes('韓國平台手續費'));const lineText=decodeURIComponent(new URL(await page.locator('#lineInquiry').getAttribute('href')).search.slice(1));assert.ok(lineText.includes('韓國平台手續費'));assert.equal(await page.locator('#error').isVisible(),false);");
+          fs.writeFileSync('source-test.mjs',code);await import('./source-test.mjs');
+          JS
+      - name: Save source verification evidence (not production acceptance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-v9-source-validation-final
+          path: evidence/
+          retention-days: 7
