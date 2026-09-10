@@ -1,0 +1,49 @@
+name: Prepare shared Google Sheets exchange rate v12
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-sheet-rate-prepare-v12.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Read pinned implementation recipe
+        run: curl --fail --silent --show-error --max-time 40 'https://raw.githubusercontent.com/paulchen01/Bychen01/5481f489c37c47e8cdfb04a131a31948808b7705/korea-quote/releases/prepare-20260910-12.py' -o prepare.py
+      - name: Prepare reproducible source snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python prepare.py
+      - name: Check decimal arithmetic, quote snapshots, and actual public B2
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          import {validateRate} from './prepared-site/lib/pricing.mjs';
+          import {estimateFromAmounts,verifiedCalculation,estimateFormula} from './prepared-site/lib/estimate.mjs';
+          import {inquiryText} from './prepared-site/lib/inquiry.mjs';
+          import {parseSheetRate,createRateReader,getRate} from './prepared-site/lib/sheet-rate.mjs';
+          let checked=0;
+          for(const rate of [10,37.5,38,38.1,38.2,99.99,100])for(const[p,s,f,percent,fixed]of[[9000,3500,null,0,50],[20000,null,0,0,50],[20001,0,1900,8,0],[79999,1,null,5,0],[150000,0,2400,3,0],[170000,null,null,3,0],[200000,0,0,0,0],[1000000000,1000000000,1000000000,0,0]]){
+            const q=estimateFromAmounts(p,s,f,rate),d=BigInt(Math.round(rate*100)),num=BigInt(p+(s||0))*BigInt(100+percent)+BigInt(f||0)*100n+BigInt(fixed)*d;
+            assert.equal(q.totalTwd,Number((num+d-1n)/d));assert.equal(q.exchangeRate,rate);assert.equal(verifiedCalculation(q).totalTwd,q.totalTwd);assert.ok(estimateFormula(q).includes('÷'+rate));assert.ok(inquiryText({title:'test'},q,{manual:true}).includes('報價匯率：'+rate));checked++;
+          }
+          for(const value of [0,-1,NaN,Infinity,9.99,100.01,'38.123','38元','',null,{},true]){assert.throws(()=>validateRate(value));checked++;}
+          const payload=n=>'/*O_o*/\ngoogle.visualization.Query.setResponse('+JSON.stringify({status:'ok',table:{cols:[{id:'B',type:'number'}],rows:[{c:[{v:n}]}]}})+');';
+          assert.equal(parseSheetRate(payload(38.1)),38.1);assert.throws(()=>parseSheetRate(payload('38.1')));assert.throws(()=>parseSheetRate('<html>login</html>'));
+          let now=1700000000000,n=38.1,calls=0,fail=false;const read=createRateReader({now:()=>now,fetchImpl:async()=>{calls++;if(fail)throw Error('test');return new Response(payload(n));}});
+          const[a,b]=await Promise.all([read(),read()]);assert.equal(a.exchangeRate,38.1);assert.equal(b.exchangeRate,38.1);assert.equal(calls,1);n=37.5;now+=16000;assert.equal((await read()).exchangeRate,37.5);fail=true;now+=16000;await assert.rejects(read());
+          const actual=await getRate();assert.equal(actual.source,'google_sheets');assert.ok(actual.exchangeRate>=10&&actual.exchangeRate<=100);
+          const report={arithmeticAndInvalidCases:checked,snapshotVerification:true,cacheFailureDoesNotUseDefault:true,actualPublicCell:actual,checkedAt:new Date().toISOString(),deployed:false};fs.writeFileSync('source-checks.json',JSON.stringify(report,null,2));console.log('SOURCE_CHECKS_PASSED',JSON.stringify(report));
+          JS
+      - name: Preserve tested source and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-sheet-rate-v12-prepared
+          path: |
+            prepared-site/
+            prepared-v12.json
+            source-checks.json
+          retention-days: 14
