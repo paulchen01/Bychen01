@@ -1,0 +1,30 @@
+name: Inspect current public rate integration
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-rate-sync-inspect-public-20260910.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public website and one public rate cell without credentials
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const base='https://korea-quote-0908.vercel.app';
+          const files=['api/health','api/rate','index.html','app.js','lib/pricing.mjs','lib/estimate.mjs','lib/inquiry.mjs','lib/platforms.mjs','lib/exchange-rate.mjs','style.css'];
+          const entries=files.map(f=>[f,base+'/'+f]);
+          entries.push(['sheet','https://docs.google.com/spreadsheets/d/1DPBaWy1JLvwtAabHmGhYTsxxyfyW3vAEPyQkcWYHRDc/gviz/tq?gid=527189645&range=B2&headers=0&tqx=out:json']);
+          const report=[];
+          await Promise.all(entries.map(async([name,url])=>{try{const r=await fetch(url,{redirect:'manual',cache:'no-store',signal:AbortSignal.timeout(20000)});const body=await r.text();if(body.length>500000)throw Error('Response too large');const filename='evidence/'+name.replaceAll('/','_')+'.txt';fs.writeFileSync(filename,body);const result={name,status:r.status,location:r.headers.get('location'),type:r.headers.get('content-type'),body:['sheet','api/health','api/rate'].includes(name)?body.slice(0,6500):undefined};report.push(result);console.log('READ',JSON.stringify(result));}catch(e){const result={name,error:e.message};report.push(result);console.log('READ',JSON.stringify(result));}}));
+          fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-rate-sync-public-inspection
+          path: evidence/
+          retention-days: 7
