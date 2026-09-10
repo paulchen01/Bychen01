@@ -1,0 +1,69 @@
+name: Verify live sheet rate synchronization v12
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-sheet-rate-production-v12.yml']
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install browser test dependency and CJK fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify original production site without login and without changing B2
+        run: |
+          mkdir -p evidence/source/lib evidence/source/assets
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-10.12',report={base,version,deploymentId:'dpl_8GqJ3b8PukDT1yntyNzYAkGiL3Rp',productionVerified:false,sheetChangedByTest:false,realBrowser:[],simulatedTransitions:[]};
+          let browser;
+          const get=async u=>{const r=await fetch(u,{redirect:'manual',cache:'no-store',signal:AbortSignal.timeout(15000)});return {r,text:await r.text()};};
+          const hash=b=>createHash('sha256').update(b).digest('hex');
+          try{
+            let ready=false,last;
+            for(let i=0;i<20;i++){try{const {r,text}=await get(base+'/api/rate');last={status:r.status,body:text.slice(0,1000)};if(r.ok){const d=JSON.parse(text);if(d.ok&&d.version===version&&d.source==='google_sheets'){report.rate=d;ready=true;break;}}}catch(e){last={error:e.message};}await new Promise(r=>setTimeout(r,4000));}
+            assert.ok(ready,JSON.stringify(last));console.log('LIVE_RATE_READY',JSON.stringify(report.rate));
+            const rr=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/24d3fe987558a0f43d9f065cf1d79c14bbdbd52c/korea-quote/releases/site-20260910-12.json');assert.equal(rr.r.status,200);assert.equal(hash(rr.text),'4874db95084d7c7f76ef97804a39ff7e9ddb1922883b66745727c151cc5cec5f');const release=JSON.parse(rr.text);
+            for(const[file,want]of Object.entries(release.hashes)){if(file.startsWith('api/')||file==='package.json'||file==='lib/sheet-rate.mjs')continue;const {r,text}=await get(base+'/'+file);if(file.startsWith('assets/'))continue;assert.equal(r.status,200,file);assert.equal(hash(text),want,file);const dest=path.join('evidence/source',file);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,text);}
+            const sourceReader=release.files.find(f=>f.file==='lib/sheet-rate.mjs');fs.writeFileSync('evidence/source/lib/sheet-rate.mjs',Buffer.from(sourceReader.data,'base64'));
+            const {parseSheetRate,SHEET_RATE_URL}=await import('./evidence/source/lib/sheet-rate.mjs');const {estimateFromAmounts,quoteForProduct}=await import('./evidence/source/lib/estimate.mjs');
+            const sheet=await get(SHEET_RATE_URL);assert.equal(sheet.r.status,200);report.directSheetRate=parseSheetRate(sheet.text);assert.equal(report.rate.exchangeRate,report.directSheetRate);console.log('PUBLIC_B2_MATCH',report.directSheetRate);
+            const health=await get(base+'/api/health');assert.equal(health.r.status,200);assert.equal(JSON.parse(health.text).exchangeRate,report.directSheetRate);
+            const verify=await get(base+'/google4170efb46fe3af33.html');assert.equal(verify.text.trim(),'google-site-verification: google4170efb46fe3af33.html');
+            browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [393,1440,320]){
+              const c=await browser.newContext({viewport:{width,height:1000},permissions:['clipboard-read','clipboard-write']}),page=await c.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+              const initialRate=page.waitForResponse(r=>r.url()===base+'/api/rate');await page.goto(base+'/?v=20260910-12',{waitUntil:'networkidle'});const rate=await(await initialRate).json();assert.equal(rate.version,version);await page.waitForFunction(r=>document.getElementById('rate').textContent===String(r),rate.exchangeRate);await page.evaluate(()=>document.fonts.ready);
+              assert.equal(await page.locator('#version').innerText(),version);assert.deepEqual(await page.locator('[data-current-rate]').allTextContents(),[String(rate.exchangeRate),String(rate.exchangeRate)]);
+              await page.locator('.manual-details summary').click();await page.locator('#p').fill('28000');await page.locator('#s').fill('4000');await page.locator('#pf').fill('1900');await page.locator('#manual button').click();await page.locator('#result:not([hidden])').waitFor();
+              const qrate=Number(await page.locator('#quoteRate').innerText()),q=estimateFromAmounts(28000,4000,1900,qrate);assert.equal(await page.locator('#total').innerText(),q.totalTwd.toLocaleString('zh-TW'));assert.ok((await page.locator('#math').innerText()).includes('÷'+qrate));assert.ok((await page.locator('#platformFeeNote').innerText()).includes('除以'+qrate));
+              const link=new URL(await page.locator('#lineInquiry').getAttribute('href')),msg=decodeURIComponent(link.search.slice(1));assert.ok(msg.includes('報價匯率：'+qrate));assert.ok(msg.includes('1900÷'+qrate));await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),msg);
+              assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+              await page.locator('.formula-card').screenshot({path:'evidence/live-formula-'+width+'.png'});await page.locator('#result-panel').screenshot({path:'evidence/live-result-'+width+'.png'});
+              if(width===393){const productUrl='https://fruitsfamily.com/product/6gnwx/wearhouse-t';await page.locator('#url').fill(productUrl);const waiting=page.waitForResponse(r=>r.url().startsWith(base+'/api/quote?'),{timeout:65000});await page.locator('#go').click();const response=await waiting,d=await response.json();report.realProduct=d;assert.equal(response.status(),200);assert.ok(d.ok&&d.quote,JSON.stringify(d));assert.equal(d.quote.exchangeRate,d.rate.exchangeRate);assert.equal(d.quote.totalTwd,quoteForProduct(d.product,d.rate.exchangeRate).totalTwd);await page.waitForFunction(total=>document.getElementById('total').textContent===total,d.quote.totalTwd.toLocaleString('zh-TW'));assert.equal(await page.locator('#quoteRate').innerText(),String(d.rate.exchangeRate));console.log('LIVE_PRODUCT_RATE',JSON.stringify(d));}
+              report.realBrowser.push({width,rate:qrate,manualTotal:q.totalTwd,formulaAndLineConsistent:true,errors});await c.close();
+            }
+            // Isolated browser simulation only. The real Google Sheet is never edited.
+            const c=await browser.newContext({viewport:{width:393,height:1000},permissions:['clipboard-read','clipboard-write']}),page=await c.newPage();let n=38.1,tick=0,fail=false;const errors=[];page.on('pageerror',e=>errors.push(e.message));
+            await page.route(base+'/api/rate',async route=>{tick++;await route.fulfill({status:fail?503:200,contentType:'application/json',body:JSON.stringify(fail?{ok:false,error:'Simulated rate outage'}:{ok:true,version,exchangeRate:n,checkedAt:new Date(Date.now()+tick*1000).toISOString(),source:'google_sheets'})});});
+            await page.goto(base+'/?v=20260910-12',{waitUntil:'networkidle'});await page.waitForFunction(()=>document.getElementById('rate').textContent==='38.1');await page.locator('.manual-details summary').click();await page.locator('#p').fill('28000');await page.locator('#s').fill('4000');await page.locator('#pf').fill('1900');await page.locator('#manual button').click();await page.waitForFunction(()=>document.getElementById('total').textContent==='957');
+            n=38.2;await page.locator('#refreshRate').click();await page.waitForFunction(()=>document.getElementById('rate').textContent==='38.2');assert.deepEqual(await page.locator('[data-current-rate]').allTextContents(),['38.2','38.2']);assert.equal(await page.locator('#quoteRate').innerText(),'38.1');assert.ok(await page.locator('#quoteRateUpdate').isVisible());
+            await page.locator('#reprice').click();await page.waitForFunction(()=>document.getElementById('total').textContent==='955');assert.equal(await page.locator('#quoteRate').innerText(),'38.2');await page.locator('#copy').click();assert.ok((await page.evaluate(()=>navigator.clipboard.readText())).includes('報價匯率：38.2'));
+            n=37.5;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await page.waitForFunction(()=>document.getElementById('rate').textContent==='37.5');assert.deepEqual(await page.locator('[data-current-rate]').allTextContents(),['37.5','37.5']);await page.locator('#reprice').click();await page.waitForFunction(()=>document.getElementById('total').textContent==='973');
+            fail=true;await page.locator('#refreshRate').click();await page.waitForFunction(()=>document.getElementById('rateSyncStatus').classList.contains('rate-error'));assert.equal(await page.locator('#rate').innerText(),'37.5');assert.ok((await page.locator('#rateSyncStatus').innerText()).includes('最後確認匯率'));assert.deepEqual(errors,[]);
+            report.simulatedTransitions.push({rates:[38.1,38.2,37.5],totals:[957,955,973],oldQuoteSnapshotWarning:true,repriceAndLine:true,failureDoesNotDefault38:true});await c.close();
+            report.productionVerified=true;report.checkedAt=new Date().toISOString();console.log('PRODUCTION_ACCEPTANCE_SUCCESS',JSON.stringify(report));
+          }catch(e){report.error={message:e.message,stack:e.stack};throw e;}finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));if(browser)await browser.close();}
+          JS
+      - name: Preserve real production and isolated simulation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-sheet-rate-v12-production
+          path: evidence/
+          retention-days: 14
