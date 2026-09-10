@@ -1,0 +1,29 @@
+name: Inspect public rate synchronization
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-rate-sync-inspect-20260910.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public site and the dedicated rate cell without authentication
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const base='https://korea-quote-0908.vercel.app';
+          const entries=[['health',base+'/api/health'],['home',base+'/'],['app',base+'/app.js'],['pricing',base+'/lib/pricing.mjs'],['sheet','https://docs.google.com/spreadsheets/d/1DPBaWy1JLvwtAabHmGhYTsxxyfyW3vAEPyQkcWYHRDc/gviz/tq?gid=527189645&range=B2&headers=0&tqx=out:json']];
+          const report=[];
+          for(const [name,url] of entries){try{const r=await fetch(url,{redirect:'manual',cache:'no-store',signal:AbortSignal.timeout(15000)});const body=await r.text();if(body.length>400000)throw Error('oversized response');fs.writeFileSync('evidence/'+name+'.txt',body);const entry={name,status:r.status,location:r.headers.get('location'),contentType:r.headers.get('content-type'),sha256:createHash('sha256').update(body).digest('hex'),body:name==='health'||name==='sheet'?body.slice(0,4000):undefined};report.push(entry);console.log(JSON.stringify(entry));}catch(e){const entry={name,error:e.message};report.push(entry);console.log(JSON.stringify(entry));}}
+          fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-rate-sync-inspect
+          path: evidence/
+          retention-days: 7
