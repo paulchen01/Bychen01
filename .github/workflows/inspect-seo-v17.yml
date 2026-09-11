@@ -1,0 +1,31 @@
+name: Inspect SEO v17
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/inspect-seo-v17.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect SEO signals in verified v17 release
+        run: |
+          node --input-type=module <<'JS'
+          const url='https://raw.githubusercontent.com/paulchen01/Bychen01/c23b3a3d8f9452ba4a4f85fa34712cd7a6b0fcd8/korea-quote/releases/site-20260911-17.json';
+          const r=await fetch(url); if(!r.ok) throw new Error(String(r.status)); const rel=await r.json();
+          const get=f=>Buffer.from(rel.files.find(x=>x.file===f).data,'base64').toString('utf8');
+          const h=get('index.html'),robots=get('robots.txt'),sitemap=get('sitemap.xml');
+          const one=(re)=>h.match(re)?.[1]||null;
+          console.log(JSON.stringify({
+            version:rel.version,
+            title:one(/<title>([^<]*)<\/title>/i),
+            description:one(/<meta name="description" content="([^"]*)"/i),
+            canonical:one(/<link rel="canonical" href="([^"]*)"/i),
+            h1:one(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(),
+            ldjsonCount:(h.match(/application\/ld\+json/gi)||[]).length,
+            ogTitle:one(/<meta property="og:title" content="([^"]*)"/i),
+            ogDescription:one(/<meta property="og:description" content="([^"]*)"/i),
+            robots, sitemap
+          },null,2));
+          JS
