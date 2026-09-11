@@ -1,0 +1,33 @@
+{
+  "productId": "13749878148",
+  "store": "deco-deco",
+  "checkedAt": "2026-09-11T03:10:23.950Z",
+  "results": [
+    {
+      "input": "https://smartstore.naver.com/deco-deco/products/13749878148",
+      "nav": {
+        "status": 429,
+        "url": "https://m.smartstore.naver.com/deco-deco/products/13749878148"
+      },
+      "title": "[에러페이지] 에러페이지",
+      "verification": false,
+      "text": "본문 바로가기\nNAVER\n현재 서비스 접속이 불가합니다.\n\n동시에 접속하는 이용자 수가 많거나 인터넷 네트워크 상태가 불안정하여 접속이 불가합니다 이용에 불편을 드린 점 진심으로 사과드리며, 잠시 후 다시 접속해 주시기 바랍니다.\n\n관련 문의는 고객센터(1588-3819)로 연락주시면 친절히 안내해 드리겠습니다.\n\n이전 페이지로 가기",
+      "meta": {},
+      "state": [],
+      "network": []
+    },
+    {
+      "input": "https://m.smartstore.naver.com/deco-deco/products/13749878148",
+      "nav": {
+        "status": 429,
+        "url": "https://m.smartstore.naver.com/deco-deco/products/13749878148"
+      },
+      "title": "[에러페이지] 에러페이지",
+      "verification": false,
+      "text": "본문 바로가기\nNAVER\n현재 서비스 접속이 불가합니다.\n\n동시에 접속하는 이용자 수가 많거나 인터넷 네트워크 상태가 불안정하여 접속이 불가합니다 이용에 불편을 드린 점 진심으로 사과드리며, 잠시 후 다시 접속해 주시기 바랍니다.\n\n관련 문의는 고객센터(1588-3819)로 연락주시면 친절히 안내해 드리겠습니다.\n\n이전 페이지로 가기",
+      "meta": {},
+      "state": [],
+      "network": []
+    }
+  ]
+}
