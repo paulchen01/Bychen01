@@ -1,0 +1,44 @@
+{
+  "base": "https://korea-quote-0908.vercel.app",
+  "version": "2026-09-11.19",
+  "deploymentId": "dpl_13zzmRTMKKPhKskcPTUgpJh5R81d",
+  "productionVerified": true,
+  "pages": [
+    {
+      "path": "/",
+      "width": 1440,
+      "noOverflow": true
+    },
+    {
+      "path": "/",
+      "width": 393,
+      "noOverflow": true
+    },
+    {
+      "path": "/zigzag/",
+      "title": "Zigzag 代購｜지그재그 韓國女裝商品台幣估價｜廢廢豬"
+    },
+    {
+      "path": "/korea-exchange-rate/",
+      "title": "韓國代購匯率怎麼算？韓幣換台幣報價公式｜廢廢豬"
+    },
+    {
+      "path": "/korea-proxy-order/",
+      "title": "韓國代下單是什麼？代購與代下單差異、費用算法｜廢廢豬"
+    },
+    {
+      "path": "/bunjang-guide/",
+      "title": "Bunjang 教學｜번개장터 韓國閃電拍賣代購新手注意事項｜廢廢豬"
+    }
+  ],
+  "rate": {
+    "ok": true,
+    "exchangeRate": 38,
+    "checkedAt": "2026-09-11T09:13:24.197Z",
+    "source": "google_sheets",
+    "cell": "B2",
+    "fromCache": false,
+    "version": "2026-09-11.19"
+  },
+  "checkedAt": "2026-09-11T09:13:36.987Z"
+}
