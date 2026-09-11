@@ -1,0 +1,29 @@
+name: SmartStore fallbacks 13749878148
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/smartstore-fallbacks-13749878148.yml']
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe public fallback sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const pid='13749878148',slug='deco-deco',product=`https://smartstore.naver.com/${slug}/products/${pid}`;
+          const urls=[
+            'https://r.jina.ai/'+product,
+            'https://r.jina.ai/http://smartstore.naver.com/'+slug+'/products/'+pid,
+            'https://search.shopping.naver.com/search/all?query='+pid,
+            'https://msearch.shopping.naver.com/search/all?query='+pid,
+            'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(slug+' '+pid)
+          ];
+          const out=[];for(const url of urls){try{const r=await fetch(url,{headers:{Accept:'text/html,application/json,text/plain,*/*','Accept-Language':'ko-KR,ko;q=0.9','User-Agent':'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/139 Mobile Safari/537.36'},redirect:'follow',signal:AbortSignal.timeout(20000)});const text=(await r.text()).slice(0,250000);out.push({url,finalUrl:r.url,status:r.status,contentType:r.headers.get('content-type'),hasPid:text.includes(pid),hasSlug:text.includes(slug),body:text.slice(0,30000)});}catch(e){out.push({url,error:e.message});}}
+          console.log('FALLBACKS',JSON.stringify(out));const api='https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/smartstore-fallbacks-'+pid+'.json';let sha;const old=await fetch(api,{headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json'}});if(old.ok)sha=(await old.json()).sha;const data=Buffer.from(JSON.stringify({checkedAt:new Date().toISOString(),pid,slug,results:out},null,2)).toString('base64');const r=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save SmartStore fallback probe',content:data,...(sha?{sha}:{})})});assert.ok(r.ok,await r.text());
+          JS
