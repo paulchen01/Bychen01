@@ -1,0 +1,47 @@
+name: Verify desktop readability v17 on production
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-desktop-production-v17.yml']
+permissions:
+  contents: write
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify original public hostname and desktop font sizes
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-11.17',deploymentId='dpl_2aFD7nb6WfGSkK3LgqLdZqAVL946',hash=b=>createHash('sha256').update(b).digest('hex');const report={base,version,deploymentId,productionVerified:false,browser:[]};
+          const get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout(15000)});return{r,b:Buffer.from(await r.arrayBuffer())}};let browser;
+          try{let ready=false,last;for(let i=0;i<20;i++){try{const{r,b}=await get(base+'/api/rate'),d=JSON.parse(b);last=d;if(r.ok&&d.ok&&d.version===version){report.rate=d;ready=true;break}}catch(e){last={error:e.message}}await new Promise(r=>setTimeout(r,4000))}assert.ok(ready,'v17 not live: '+JSON.stringify(last));
+            const{r:rr,b:raw}=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/c23b3a3d8f9452ba4a4f85fa34712cd7a6b0fcd8/korea-quote/releases/site-20260911-17.json');assert.equal(rr.status,200);assert.equal(hash(raw),'8f897360953d2cf739d54ae8bd6c40fd5e7d81d1724041aa6a4bcf13bb714c22');const release=JSON.parse(raw);
+            for(const f of ['index.html','style.css','app.js','smartstore-beta.js','lib/estimate.mjs','lib/pricing.mjs','lib/sheet-rate.mjs','google4170efb46fe3af33.html']){const{r,b}=await get(base+'/'+f);assert.equal(r.status,200,f);assert.equal(hash(b),release.hashes[f],f)}
+            const px=async loc=>parseFloat(await loc.evaluate(el=>getComputedStyle(el).fontSize));browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [1440,393,320]){const c=await browser.newContext({viewport:{width,height:1100}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));const rateP=page.waitForResponse(r=>r.url()===base+'/api/rate');await page.goto(base+'/?v=20260911-17',{waitUntil:'networkidle'});const rate=await(await rateP).json();await page.waitForFunction(v=>document.getElementById('rate').textContent===String(v),rate.exchangeRate);const data={stepsNumber:await px(page.locator('.steps-strip>div>span').first()),stepsTitle:await px(page.locator('.steps-strip b').first()),stepsSmall:await px(page.locator('.steps-strip small').first()),contactBody:await px(page.locator('.contact-card p:not(.eyebrow)').first()),contactId:await px(page.locator('.contact-id b')),copyId:await px(page.locator('.text-button')),qrCaption:await px(page.locator('.qr-block>span')),care:await px(page.locator('.care-note p')),careButton:await px(page.locator('.care-note button')),footerBrand:await px(page.locator('footer>div>b')),footerSub:await px(page.locator('footer>div>span')),footerNote:await px(page.locator('footer>p')),footerVersion:await px(page.locator('footer>small'))};if(width===1440)assert.deepEqual(data,{stepsNumber:22,stepsTitle:16,stepsSmall:12,contactBody:14,contactId:18,copyId:12,qrCaption:11,care:13,careButton:12,footerBrand:18,footerSub:12,footerNote:12,footerVersion:11});else{assert.ok(data.stepsTitle<16&&data.stepsSmall<12&&data.care<13)}assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.screenshot({path:'evidence/live-'+width+'.png',fullPage:true});report.browser.push({width,...data,noOverflow:true});await c.close()}
+            report.productionVerified=true;report.checkedAt=new Date().toISOString();fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log('V17_PRODUCTION_VERIFIED',JSON.stringify(report));
+          }catch(e){report.error={message:e.message,stack:e.stack};fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));throw e}finally{if(browser)await browser.close()}
+          JS
+      - name: Save acceptance receipt
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';const b=fs.readFileSync('evidence/report.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/acceptance-20260911-17.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Preserve production-verified desktop readability v17',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('SAVED_ACCEPTANCE',d.commit.sha);
+          JS
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-desktop-v17-production
+          path: evidence/
+          retention-days: 14
