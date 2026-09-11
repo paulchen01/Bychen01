@@ -1,0 +1,22 @@
+name: Inspect desktop typography v16
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/inspect-desktop-typography-v16.yml']
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print target HTML contexts and CSS rules
+        run: |
+          node --input-type=module <<'JS'
+          const url='https://raw.githubusercontent.com/paulchen01/Bychen01/b3e09b48787848dd778767be7777410467d86870/korea-quote/releases/site-20260911-16.json';
+          const r=await fetch(url); if(!r.ok) throw new Error('release '+r.status); const release=await r.json();
+          const get=f=>Buffer.from(release.files.find(x=>x.file===f).data,'base64').toString('utf8');
+          const html=get('index.html'),css=get('style.css');
+          const phrases=['貼上商品','取得預估報價','到 LINE 確認','到LINE確認','搜尋 LINE ID','廢廢豬的小提醒','本估價網頁僅為廢廢豬韓國代購之初步報價查詢','Made for your little Korean finds','fat fat pig'];
+          for(const p of phrases){const i=html.indexOf(p);console.log('\n===',p,'index',i,'===');if(i>=0)console.log(html.slice(Math.max(0,i-500),Math.min(html.length,i+700)));}
+          const classes=[...new Set((html.match(/class="[^"]+"/g)||[]).flatMap(x=>x.slice(7,-1).split(/\s+/)))];
+          console.log('\nCLASSES',classes.join('\n'));
+          for(const c of classes){const re=new RegExp('(?:^|[},\\n])[^{}]*\\.'+c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[^{}]*\\{[^}]*font-size[^}]*\\}','gm');const m=css.match(re);if(m)console.log('\nCSS_CLASS',c,'\n',m.slice(0,4).join('\n'));}
+          JS
