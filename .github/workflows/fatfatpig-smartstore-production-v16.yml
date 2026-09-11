@@ -1,0 +1,46 @@
+name: Verify SmartStore beta v16 on production
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-smartstore-production-v16.yml']
+permissions:
+  contents: write
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify original public hostname
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-11.16',hash=b=>createHash('sha256').update(b).digest('hex'),report={base,version,deploymentId:'dpl_6dk1J3bcLthKTZX6sw5gYR5Emy1X',productionVerified:false,browser:[]};
+          const get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout(15000)});return{r,b:Buffer.from(await r.arrayBuffer())}};let browser;
+          try{let ready=false,last;for(let i=0;i<20;i++){try{const{r,b}=await get(base+'/api/rate');const d=JSON.parse(b);last=d;if(r.ok&&d.ok&&d.version===version){ready=true;report.rate=d;break}}catch(e){last={error:e.message}}await new Promise(r=>setTimeout(r,4000))}assert.ok(ready,'v16 not live: '+JSON.stringify(last));
+          const{r:rr,b:raw}=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/b3e09b48787848dd778767be7777410467d86870/korea-quote/releases/site-20260911-16.json');assert.equal(rr.status,200);assert.equal(hash(raw),'57188cafc0b3576c499509eb052960c8d031e50d041d5448d726627bc5c3f65b');const release=JSON.parse(raw);
+          for(const f of ['index.html','smartstore-beta.js','app.js','style.css','lib/estimate.mjs','lib/pricing.mjs','lib/sheet-rate.mjs','google4170efb46fe3af33.html']){const{r,b}=await get(base+'/'+f);assert.equal(r.status,200,f);assert.equal(hash(b),release.hashes[f],f)}
+          const estimateData=release.files.find(x=>x.file==='lib/estimate.mjs');fs.writeFileSync('evidence/estimate.mjs',Buffer.from(estimateData.data,'base64'));const{estimateFromAmounts}=await import('./evidence/estimate.mjs');
+          browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});for(const width of [393,320,1440]){const c=await browser.newContext({viewport:{width,height:1000}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));const rateP=page.waitForResponse(r=>r.url()===base+'/api/rate');await page.goto(base+'/?v=20260911-16',{waitUntil:'networkidle'});const rate=await(await rateP).json();await page.waitForFunction(v=>document.getElementById('rate').textContent===String(v),rate.exchangeRate);await page.waitForFunction(()=>window.__fatfatpigSmartstoreBeta);await page.locator('#url').fill('https://smartstore.naver.com/deco-deco/products/13749878148');await page.waitForFunction(()=>document.getElementById('smartstoreBeta').classList.contains('show'));const text=await page.locator('#smartstoreBeta').innerText();assert.ok(text.includes('韓文原文＋中文協助'));assert.ok(text.includes('分享已驗證的 Naver 分頁讀價'));assert.ok(text.includes('上傳商品頁截圖'));const parsed=await page.evaluate(()=>window.__fatfatpigSmartstoreBeta.priceCandidates('SALE 29,800 29,800 1980 13749878148 49,900'));assert.ok(parsed.includes(29800)&&parsed.includes(49900)&&!parsed.includes(13749878148));await page.evaluate(()=>window.__fatfatpigSmartstoreBeta.show([29800,49900],'test'));await page.locator('.ss-price').first().click();await page.locator('#result:not([hidden])').waitFor({timeout:10000});const expected=estimateFromAmounts(29800,null,null,rate.exchangeRate);assert.equal(await page.locator('#quoteRate').innerText(),String(rate.exchangeRate));assert.equal(await page.locator('#total').innerText(),expected.totalTwd.toLocaleString('zh-TW'));assert.ok((await page.locator('#math').innerText()).includes('÷'+rate.exchangeRate));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.locator('#smartstoreBeta').screenshot({path:'evidence/live-smartstore-beta-'+width+'.png'});report.browser.push({width,rate:rate.exchangeRate,price:29800,total:expected.totalTwd,noOverflow:true});await c.close()}
+          report.productionVerified=true;report.checkedAt=new Date().toISOString();console.log('V16_PRODUCTION_VERIFIED',JSON.stringify(report));}catch(e){report.error={message:e.message,stack:e.stack};throw e}finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));if(browser)await browser.close()}
+          JS
+      - name: Save acceptance receipt
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';const b=fs.readFileSync('evidence/report.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/acceptance-20260911-16.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Preserve production-verified SmartStore beta v16 acceptance',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('SAVED_ACCEPTANCE',d.commit.sha);
+          JS
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-smartstore-v16-production
+          path: evidence/
+          retention-days: 14
