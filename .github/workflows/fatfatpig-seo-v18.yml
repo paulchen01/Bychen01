@@ -1,0 +1,59 @@
+name: Prepare SEO v18
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-seo-v18.yml']
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Build v18 candidate from verified v17
+        run: |
+          curl --fail --silent --show-error --max-time 40 'https://raw.githubusercontent.com/paulchen01/Bychen01/fcffe65ea1d4f94195e2f3d2b1967ac924f595d4/korea-quote/releases/build-20260911-18.mjs' -o build.mjs
+          node build.mjs
+      - name: Install browser dependency and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Validate SEO, crawlable content, platform pages and no quote logic drift
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import http from 'node:http';import path from 'node:path';import assert from 'node:assert/strict';import{chromium}from'playwright';
+          const release=JSON.parse(fs.readFileSync('prepared-v18.json','utf8')),v17=await(await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/c23b3a3d8f9452ba4a4f85fa34712cd7a6b0fcd8/korea-quote/releases/site-20260911-17.json')).json();
+          for(const f of ['app.js','smartstore-beta.js','lib/estimate.mjs','lib/pricing.mjs','lib/sheet-rate.mjs','api/quote.js','api/rate.js','assets/brand.webp','assets/favicon.svg','google4170efb46fe3af33.html'])assert.equal(release.hashes[f],v17.hashes[f],f+' changed unexpectedly');
+          const html=Buffer.from(release.files.find(x=>x.file==='index.html').data,'base64').toString();
+          assert.ok(html.includes('<title>廢廢豬韓國代購｜Bunjang・Naver・Musinsa 商品台幣估價</title>'));
+          assert.ok(/<h1[^>]*>韓國代購好物，慢慢挑。<br>心動的價格，先幫你算。<\/h1>/.test(html));
+          assert.equal((html.match(/application\/ld\+json/g)||[]).length,1);
+          const ld=JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);const types=new Set(ld['@graph'].map(x=>x['@type']));for(const t of ['Organization','WebSite','WebPage','Service','FAQPage'])assert.ok(types.has(t),t);
+          assert.equal(ld['@graph'].find(x=>x['@type']==='Organization').sameAs[0],'https://shopee.tw/chenby');
+          const sitemap=Buffer.from(release.files.find(x=>x.file==='sitemap.xml').data,'base64').toString();for(const u of ['/','/bunjang/','/naver-smartstore/','/musinsa/','/fruitsfamily/','/olive-young/'])assert.ok(sitemap.includes('https://korea-quote-0908.vercel.app'+u));
+          assert.ok(release.hashes['llms.txt']);
+          const server=http.createServer((req,res)=>{try{let p=new URL(req.url,'http://x').pathname;if(p==='/api/rate'){res.setHeader('content-type','application/json');res.end(JSON.stringify({ok:true,version:'2026-09-11.18',exchangeRate:38,checkedAt:new Date().toISOString(),source:'google_sheets'}));return;}if(p.endsWith('/'))p+='index.html';const f=path.join('.vercel/output/static',p==='/'?'index.html':p.slice(1));const ext=path.extname(f);res.setHeader('content-type',ext==='.html'?'text/html':ext==='.css'?'text/css':ext==='.js'?'application/javascript':ext==='.xml'?'application/xml':'text/plain');res.end(fs.readFileSync(f));}catch{res.statusCode=404;res.end('not found')}});await new Promise(r=>server.listen(8765,'127.0.0.1',r));
+          let browser;const report={version:release.version,pages:[],mobile:[],logicPreserved:true};try{browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [1440,393]){const c=await browser.newContext({viewport:{width,height:1200}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__fatfatpigSmartstoreBeta);assert.equal(await page.locator('h1').innerText(),'韓國代購好物，慢慢挑。\n心動的價格，先幫你算。');assert.equal(await page.locator('.seo-platform-grid a').count(),5);assert.equal(await page.locator('.seo-faq details').count(),4);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.screenshot({path:`evidence/home-${width}.png`,fullPage:true});(width===1440?report.pages:report.mobile).push({path:'/',width,noOverflow:true});await c.close();}
+            const pages=['bunjang','naver-smartstore','musinsa','fruitsfamily','olive-young'];for(const slug of pages){const c=await browser.newContext({viewport:{width:1280,height:1000}}),page=await c.newPage();const r=await page.goto('http://127.0.0.1:8765/'+slug+'/',{waitUntil:'domcontentloaded'});assert.equal(r.status(),200);assert.equal(await page.locator('h1').count(),1);assert.ok((await page.title()).includes('廢廢豬'));assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),'https://korea-quote-0908.vercel.app/'+slug+'/');assert.ok((await page.locator('body').innerText()).length>350);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));report.pages.push({path:'/'+slug+'/',title:await page.title(),bodyChars:(await page.locator('body').innerText()).length});await c.close();}
+            report.passed=true;fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log('SEO_V18_TESTS_PASSED',JSON.stringify(report));
+          }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
+          JS
+      - name: Save tested v18 release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';const b=fs.readFileSync('prepared-v18.json');const digest=createHash('sha256').update(b).digest('hex');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260911-18.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save tested SEO v18 release with platform landing pages',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('V18_RELEASE_SAVED',d.commit.sha,digest);
+          JS
+      - name: Preserve candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-seo-v18
+          path: |
+            evidence/
+            prepared-v18.json
+          retention-days: 14
