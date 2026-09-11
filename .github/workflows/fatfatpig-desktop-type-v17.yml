@@ -1,0 +1,54 @@
+name: Prepare desktop readability v17
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-desktop-type-v17.yml']
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Build candidate from verified v16
+        run: |
+          curl --fail --silent --show-error --max-time 40 'https://raw.githubusercontent.com/paulchen01/Bychen01/3a86db7eaa0a250d441a5c1b93a79277fd801b85/korea-quote/releases/build-20260911-17.mjs' -o build.mjs
+          node build.mjs
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify desktop sizes, mobile preservation and no logic drift
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import http from 'node:http';import path from 'node:path';import assert from 'node:assert/strict';import{chromium}from'playwright';
+          const release=JSON.parse(fs.readFileSync('prepared-v17.json','utf8')),v16=await(await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/b3e09b48787848dd778767be7777410467d86870/korea-quote/releases/site-20260911-16.json')).json();
+          for(const f of ['app.js','smartstore-beta.js','lib/estimate.mjs','lib/pricing.mjs','lib/sheet-rate.mjs','api/quote.js','api/rate.js'])assert.equal(release.hashes[f],v16.hashes[f],f+' changed unexpectedly');
+          const server=http.createServer((req,res)=>{try{const p=new URL(req.url,'http://x').pathname;if(p==='/api/rate'){res.setHeader('content-type','application/json');res.end(JSON.stringify({ok:true,version:'2026-09-11.17',exchangeRate:38,checkedAt:new Date().toISOString(),source:'google_sheets'}));return;}const f=path.join('.vercel/output/static',p==='/'?'index.html':p);const ext=path.extname(f);res.setHeader('content-type',ext==='.js'?'application/javascript':ext==='.css'?'text/css':ext==='.html'?'text/html':'application/octet-stream');res.end(fs.readFileSync(f));}catch{res.statusCode=404;res.end('not found')}});await new Promise(r=>server.listen(8765,'127.0.0.1',r));
+          const px=async(loc)=>parseFloat(await loc.evaluate(el=>getComputedStyle(el).fontSize));let browser;const report={desktop:{},mobile:{},logicPreserved:true};
+          try{browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [1440,393,320]){const c=await browser.newContext({viewport:{width,height:1200}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>document.fonts.ready);const data={stepsNumber:await px(page.locator('.steps-strip>div>span').first()),stepsTitle:await px(page.locator('.steps-strip b').first()),stepsSmall:await px(page.locator('.steps-strip small').first()),contactBody:await px(page.locator('.contact-card p:not(.eyebrow)').first()),contactId:await px(page.locator('.contact-id b')),copyId:await px(page.locator('.text-button')),qrCaption:await px(page.locator('.qr-block>span')),care:await px(page.locator('.care-note p')),careButton:await px(page.locator('.care-note button')),footerBrand:await px(page.locator('footer>div>b')),footerSub:await px(page.locator('footer>div>span')),footerNote:await px(page.locator('footer>p')),footerVersion:await px(page.locator('footer>small'))};assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);
+              if(width===1440){assert.deepEqual(data,{stepsNumber:22,stepsTitle:16,stepsSmall:12,contactBody:14,contactId:18,copyId:12,qrCaption:11,care:13,careButton:12,footerBrand:18,footerSub:12,footerNote:12,footerVersion:11});report.desktop=data;await page.screenshot({path:'evidence/desktop-1440.png',fullPage:true});}
+              else{assert.ok(data.stepsTitle<16);assert.ok(data.stepsSmall<12);assert.ok(data.care<13);report.mobile[width]=data;await page.screenshot({path:'evidence/mobile-'+width+'.png',fullPage:true});}
+              await c.close();}
+            report.passed=true;fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log('V17_TYPOGRAPHY_TESTS_PASSED',JSON.stringify(report));
+          }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
+          JS
+      - name: Save tested v17 release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';const b=fs.readFileSync('prepared-v17.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260911-17.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save tested desktop readability v17 release',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('V17_RELEASE_SAVED',d.commit.sha,createHash('sha256').update(b).digest('hex'));
+          JS
+      - name: Preserve screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-desktop-readability-v17
+          path: |
+            evidence/
+            prepared-v17.json
+          retention-days: 14
