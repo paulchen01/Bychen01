@@ -1,0 +1,41 @@
+name: Prepare order wording rename v14
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-rename-prepare-v14.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Confirm live baseline before the text-only change
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+          const base='https://korea-quote-0908.vercel.app';
+          const r=await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/7bf7fa8df128f8220e0c5aaee193d083cfe6125e/korea-quote/releases/site-20260911-13.json',{signal:AbortSignal.timeout(20000)});assert.equal(r.status,200);const raw=Buffer.from(await r.arrayBuffer());assert.equal(createHash('sha256').update(raw).digest('hex'),'95de20f787e81c06b43e7d28a41777f40e68529feed986264cdc239dc0f36692');const old=JSON.parse(raw);
+          for(const file of ['index.html','lib/platforms.mjs','app.js','style.css']){const r=await fetch(base+'/'+file,{cache:'no-store',signal:AbortSignal.timeout(15000)});assert.equal(r.status,200);const b=Buffer.from(await r.arrayBuffer());assert.equal(createHash('sha256').update(b).digest('hex'),old.hashes[file],'Unexpected live changes: '+file);}
+          console.log('LIVE_V13_BASELINE_CONFIRMED');
+          JS
+      - name: Apply exact wording change
+        run: |
+          curl --fail --silent --show-error --max-time 30 'https://raw.githubusercontent.com/paulchen01/Bychen01/8f8d6415337f8b262dbd62c5a39a4e20a66297fd/korea-quote/releases/prepare-20260911-14.mjs' -o prepare.mjs
+          node prepare.mjs
+      - name: Preserve source snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+          const b=fs.readFileSync('prepared-v14.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260911-14.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save tested wording-only 代下單 source snapshot v14',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('PREPARED_RELEASE',JSON.stringify({version:'2026-09-11.14',commit:d.commit.sha,sha256:createHash('sha256').update(b).digest('hex')}));
+          JS
+      - name: Save candidate files
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-rename-v14-prepared
+          path: |
+            prepared-site/
+            prepared-v14.json
+          retention-days: 14
