@@ -1,0 +1,46 @@
+name: Extract SmartStore price 13749878148
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/inspect-smartstore-price-13749878148.yml']
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - run: npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Extract product-linked public price candidates
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import{chromium}from'playwright';
+          const productId='13749878148',store='deco-deco';
+          const inputs=[`https://smartstore.naver.com/${store}/products/${productId}`,`https://m.smartstore.naver.com/${store}/products/${productId}`];
+          const moneyKeys=/price|salePrice|discountedSalePrice|discountPrice|mobileDiscountedSalePrice|benefitPrice|finalPrice|originPrice/i;
+          const idKeys=/productNo|productId|channelProductNo|nvMid|id/i;
+          const results=[];
+          function walk(v,path='$',out=[],depth=0){if(depth>10||out.length>300||v==null)return out;if(Array.isArray(v)){for(let i=0;i<Math.min(v.length,100);i++)walk(v[i],`${path}[${i}]`,out,depth+1);return out;}if(typeof v!=='object')return out;
+            let linked=false;for(const[k,val]of Object.entries(v)){if(idKeys.test(k)&&String(val)===productId)linked=true;}
+            if(linked){const fields={};for(const[k,val]of Object.entries(v)){if(moneyKeys.test(k)&&['string','number'].includes(typeof val))fields[k]=val;if(idKeys.test(k)&&['string','number'].includes(typeof val))fields[k]=val;if(/name|title|productName/i.test(k)&&typeof val==='string')fields[k]=val.slice(0,300);}out.push({path,fields});}
+            for(const[k,val]of Object.entries(v))if(typeof val==='object'&&val)walk(val,`${path}.${k}`,out,depth+1);return out;}
+          function parseJsonMaybe(text){const t=text.trim();if(!t||t.length>3000000)return null;try{return JSON.parse(t);}catch{return null;}}
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          try{for(const input of inputs){const context=await browser.newContext({viewport:{width:393,height:900},locale:'ko-KR',userAgent:'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 Chrome/139.0.0.0 Mobile Safari/537.36'});const page=await context.newPage();const network=[];
+            page.on('response',async r=>{try{const u=r.url(),ct=r.headers()['content-type']||'';if(!/json|javascript/.test(ct)&&!u.includes(productId))return;const b=await r.body();if(b.length>3000000)return;const text=b.toString('utf8');if(!text.includes(productId))return;const j=parseJsonMaybe(text);const linked=j?walk(j):[];const regex=[...text.matchAll(new RegExp(`.{0,220}${productId}.{0,700}`,'g'))].slice(0,20).map(m=>m[0]);if(linked.length||regex.length)network.push({url:u,status:r.status(),contentType:ct,linked,regex});}catch{}});
+            let nav={};try{const r=await page.goto(input,{waitUntil:'domcontentloaded',timeout:45000});nav={status:r?.status(),url:page.url()};await page.waitForTimeout(12000);}catch(e){nav={error:e.message,url:page.url()};}
+            const title=await page.title(),text=(await page.locator('body').innerText().catch(()=>'' )).slice(0,12000);
+            const meta=await page.evaluate(()=>Object.fromEntries([...document.querySelectorAll('meta')].map(m=>[m.getAttribute('property')||m.getAttribute('name'),m.content]).filter(x=>x[0]&&x[1]))).catch(()=>({}));
+            const state=await page.evaluate(pid=>{const out=[];for(const s of document.scripts){const tx=s.textContent||'';if(!tx.includes(pid))continue;try{const j=JSON.parse(tx);out.push(...(()=>{const money=/price|salePrice|discountedSalePrice|discountPrice|benefitPrice|finalPrice|originPrice/i,id=/productNo|productId|channelProductNo|nvMid|id/i,res=[];function w(v,p='$',d=0){if(d>10||res.length>200||!v||typeof v!=='object')return;let linked=false;for(const[k,val]of Object.entries(v))if(id.test(k)&&String(val)===pid)linked=true;if(linked){const f={};for(const[k,val]of Object.entries(v)){if((money.test(k)||id.test(k))&&['string','number'].includes(typeof val))f[k]=val;if(/name|title|productName/i.test(k)&&typeof val==='string')f[k]=val.slice(0,300);}res.push({path:p,fields:f});}for(const[k,val]of Object.entries(v))w(val,p+'.'+k,d+1);}w(j);return res;})());}catch{out.push({raw:tx.slice(Math.max(0,tx.indexOf(pid)-500),tx.indexOf(pid)+1600)});}}return out;},productId).catch(()=>[]);
+            const record={input,nav,title,verification:/보안|자동입력|captcha|확인해 주세요|접근이 제한|로그인|인증/i.test(title+' '+text),text:text.slice(0,4000),meta,state,network:network.slice(-80)};results.push(record);await context.close();}
+          }finally{await browser.close();}
+          const concise=results.map(r=>({input:r.input,nav:r.nav,title:r.title,verification:r.verification,text:r.text,meta:Object.fromEntries(Object.entries(r.meta).filter(([k])=>/price|title|url|image|description/i.test(k))),state:r.state,network:r.network}));
+          console.log('SMARTSTORE_RESULT',JSON.stringify(concise));
+          const body=Buffer.from(JSON.stringify({productId,store,checkedAt:new Date().toISOString(),results:concise},null,2)).toString('base64');
+          const api=`https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/smartstore-inspection-${productId}.json`;
+          let sha;const existing=await fetch(api,{headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json'}});if(existing.ok)sha=(await existing.json()).sha;
+          const payload={message:'Save SmartStore product inspection '+productId,content:body,...(sha?{sha}:{})};const saved=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(payload)});assert.ok(saved.ok,await saved.text());
+          JS
