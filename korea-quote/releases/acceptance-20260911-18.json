@@ -1,0 +1,48 @@
+{
+  "base": "https://korea-quote-0908.vercel.app",
+  "version": "2026-09-11.18",
+  "deploymentId": "dpl_8i7aChxcTiHZ3an3tQnmxBhPr1Ro",
+  "productionVerified": true,
+  "pages": [
+    {
+      "path": "/",
+      "width": 1440,
+      "noOverflow": true
+    },
+    {
+      "path": "/",
+      "width": 393,
+      "noOverflow": true
+    },
+    {
+      "path": "/bunjang/",
+      "title": "Bunjang 代購｜韓國閃電拍賣 번개장터 台幣估價｜廢廢豬"
+    },
+    {
+      "path": "/naver-smartstore/",
+      "title": "Naver SmartStore 代購｜韓國 Naver 商城台幣估價｜廢廢豬"
+    },
+    {
+      "path": "/musinsa/",
+      "title": "Musinsa 代購｜韓國 무신사 商品台幣估價｜廢廢豬"
+    },
+    {
+      "path": "/fruitsfamily/",
+      "title": "FruitsFamily 代購｜후루츠패밀리 韓國二手服飾估價｜廢廢豬"
+    },
+    {
+      "path": "/olive-young/",
+      "title": "Olive Young 代購｜韓國 올리브영 美妝台幣估價｜廢廢豬"
+    }
+  ],
+  "rate": {
+    "ok": true,
+    "exchangeRate": 38,
+    "checkedAt": "2026-09-11T08:26:45.199Z",
+    "source": "google_sheets",
+    "cell": "B2",
+    "fromCache": false,
+    "version": "2026-09-11.18"
+  },
+  "checkedAt": "2026-09-11T08:27:01.456Z"
+}
