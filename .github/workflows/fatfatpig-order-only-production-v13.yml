@@ -1,0 +1,65 @@
+name: Verify order-only card on original production v13
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-order-only-production-v13.yml']
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Install isolated browser and CJK fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify public deployment and live formula rates without editing B2
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-11.13',hash=b=>createHash('sha256').update(b).digest('hex');
+          const report={base,version,deploymentId:'dpl_7jhxdnd8tE6ENi7c15Gafn1vonWN',productionVerified:false,googleSheetModified:false,liveBrowser:[],simulatedRateTransitions:[]};
+          fs.mkdirSync('evidence',{recursive:true});let browser;
+          const get=async url=>{const r=await fetch(url,{cache:'no-store',redirect:'manual',signal:AbortSignal.timeout(15000)});return{r,b:Buffer.from(await r.arrayBuffer())};};
+          try{
+           let ready=false,last;
+           for(let i=0;i<15;i++){try{const{r,b}=await get(base+'/api/rate'),d=JSON.parse(b);last=d;if(r.ok&&d.ok&&d.version===version){report.rate=d;ready=true;break;}}catch(e){last={error:e.message};}await new Promise(r=>setTimeout(r,4000));}
+           assert.ok(ready,JSON.stringify(last));
+           const{r:rr,b:raw}=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/7bf7fa8df128f8220e0c5aaee193d083cfe6125e/korea-quote/releases/site-20260911-13.json');assert.equal(rr.status,200);assert.equal(hash(raw),'95de20f787e81c06b43e7d28a41777f40e68529feed986264cdc239dc0f36692');const release=JSON.parse(raw);
+           for(const[file,sha]of Object.entries(release.hashes)){if(file.startsWith('api/')||file==='package.json')continue;const{r,b}=await get(base+'/'+file);assert.equal(r.status,200,file);assert.equal(hash(b),sha,file);const local=path.join('evidence/source',file);fs.mkdirSync(path.dirname(local),{recursive:true});fs.writeFileSync(local,b);}
+           const{estimateFromAmounts}=await import('./evidence/source/lib/estimate.mjs');
+           assert.equal(fs.readFileSync('evidence/source/google4170efb46fe3af33.html','utf8').trim(),'google-site-verification: google4170efb46fe3af33.html');
+           browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+           for(const width of [320,393,1440]){
+            const ctx=await browser.newContext({viewport:{width,height:1000},permissions:['clipboard-read','clipboard-write']}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+            const ratePromise=page.waitForResponse(r=>r.url()===base+'/api/rate');const home=await page.goto(base+'/?v=20260911-13',{waitUntil:'networkidle'});assert.equal(home.status(),200);const rate=await(await ratePromise).json();assert.equal(rate.version,version);await page.waitForFunction(r=>document.getElementById('rate').textContent===String(r),rate.exchangeRate);
+            assert.equal(await page.locator('#version').innerText(),version);assert.equal(await page.locator('#orderOnlyQuote').isVisible(),false);
+            await page.locator('.manual-details summary').click();await page.locator('#p').fill('170000');await page.locator('#s').fill('');await page.locator('#pf').fill('');await page.locator('#manual button').click();await page.locator('#result:not([hidden])').waitFor();
+            const qrate=Number(await page.locator('#quoteRate').innerText()),expected=estimateFromAmounts(170000,null,null,qrate);
+            assert.equal(await page.locator('#total').innerText(),expected.totalTwd.toLocaleString('zh-TW'));assert.equal(await page.locator('#orderOnlyTitle').innerText(),'僅下單初步報價');assert.deepEqual(await page.locator('[data-order-only-rate]').allTextContents(),[String(qrate),String(qrate)]);assert.ok((await page.locator('#orderOnlyQuote').innerText()).includes('以真人報價為主。'));assert.equal(await page.locator('.order-only-extra').innerText(),'＋ NT$50');
+            const href=new URL(await page.locator('#lineInquiry').getAttribute('href')),line=decodeURIComponent(href.search.slice(1));assert.equal(decodeURIComponent(href.pathname),'/R/oaMessage/@fatfatpig_kr/');assert.ok(line.includes('報價匯率：'+qrate));assert.ok(!line.includes('僅下單'));
+            await page.locator('#copy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),line);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
+            await page.locator('#orderOnlyQuote').screenshot({path:'evidence/live-card-'+width+'.png'});await page.locator('#result-panel').screenshot({path:'evidence/live-result-'+width+'.png'});
+            report.liveBrowser.push({width,rate:qrate,total:expected.totalTwd,cardVisible:true,originalMathAndLinePreserved:true,noOverflow:true});await ctx.close();
+           }
+           // Intercept only in an isolated browser; the Google Sheet and public API are never edited.
+           const ctx=await browser.newContext({viewport:{width:393,height:1000}}),page=await ctx.newPage();let n=38.1,tick=0;
+           await page.route(base+'/api/rate',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,version,exchangeRate:n,checkedAt:new Date(Date.now()+(++tick)*1000).toISOString(),source:'google_sheets'})}));
+           await page.goto(base+'/?v=20260911-13',{waitUntil:'networkidle'});await page.waitForFunction(()=>document.getElementById('rate').textContent==='38.1');await page.locator('.manual-details summary').click();await page.locator('#p').fill('170000');await page.locator('#manual button').click();await page.locator('#result:not([hidden])').waitFor();
+           n=38.2;await page.locator('#refreshRate').click();await page.waitForFunction(()=>document.querySelector('[data-order-only-rate]').textContent==='38.2');assert.deepEqual(await page.locator('[data-current-rate]').allTextContents(),Array(4).fill('38.2'));assert.equal(await page.locator('#quoteRate').innerText(),'38.1');assert.ok(await page.locator('#quoteRateUpdate').isVisible());
+           await page.locator('#reprice').click();await page.waitForFunction(()=>document.getElementById('quoteRate').textContent==='38.2');
+           n=37.5;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await page.waitForFunction(()=>document.querySelector('[data-order-only-rate]').textContent==='37.5');assert.deepEqual(await page.locator('[data-current-rate]').allTextContents(),Array(4).fill('37.5'));
+           report.simulatedRateTransitions.push({rates:[38.1,38.2,37.5],allFourFormulaRatesSynchronized:true,oldQuoteSnapshotPreserved:true});await ctx.close();
+           report.productionVerified=true;report.checkedAt=new Date().toISOString();console.log('V13_PRODUCTION_VERIFIED',JSON.stringify(report));
+          }catch(e){report.error={message:e.message,stack:e.stack};throw e;}finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));if(browser)await browser.close();}
+          JS
+      - name: Save actual public-site evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-order-only-v13-production
+          path: evidence/
+          retention-days: 14
