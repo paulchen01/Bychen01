@@ -1,0 +1,35 @@
+name: Probe SmartStore API 13749878148
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/probe-smartstore-api-13749878148.yml']
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe candidate endpoints
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const pid='13749878148',slug='deco-deco';
+          const urls=[
+            `https://smartstore.naver.com/i/v1/stores/${slug}/products/${pid}`,
+            `https://smartstore.naver.com/i/v1/products/${pid}`,
+            `https://m.smartstore.naver.com/i/v1/products/${pid}`,
+            `https://smartstore.naver.com/${slug}/i/v1/products/${pid}`,
+            `https://smartstore.naver.com/i/v1/stores/${slug}`,
+            `https://m.smartstore.naver.com/i/v1/stores/${slug}`,
+            `https://smartstore.naver.com/i/v1/stores/${slug}/products/${pid}?channelProductNo=${pid}`
+          ];
+          const out=[];
+          for(const url of urls){try{const r=await fetch(url,{headers:{Accept:'application/json,text/plain,*/*','Accept-Language':'ko-KR,ko;q=0.9','User-Agent':'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 Chrome/139.0.0.0 Mobile Safari/537.36',Referer:`https://smartstore.naver.com/${slug}/products/${pid}`},redirect:'manual',signal:AbortSignal.timeout(12000)});const text=(await r.text()).slice(0,200000);out.push({url,status:r.status,location:r.headers.get('location'),contentType:r.headers.get('content-type'),hasPid:text.includes(pid),body:text.slice(0,12000)});}catch(e){out.push({url,error:e.message});}}
+          console.log('PROBE',JSON.stringify(out));
+          const api='https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/smartstore-probe-13749878148.json';
+          let sha;const existing=await fetch(api,{headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json'}});if(existing.ok)sha=(await existing.json()).sha;
+          const data=Buffer.from(JSON.stringify({checkedAt:new Date().toISOString(),pid,slug,results:out},null,2)).toString('base64');const save=await fetch(api,{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save SmartStore endpoint probe',content:data,...(sha?{sha}:{})})});assert.ok(save.ok,await save.text());
+          JS
