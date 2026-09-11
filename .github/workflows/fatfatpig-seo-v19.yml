@@ -1,0 +1,53 @@
+name: Prepare SEO intent pages v19
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-seo-v19.yml']
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Build v19 from verified v18
+        run: |
+          curl --fail --silent --show-error --max-time 40 'https://raw.githubusercontent.com/paulchen01/Bychen01/becef21bee4a17884e3115d60a59053a7f8e3920/korea-quote/releases/build-20260911-19.mjs' -o build.mjs
+          node build.mjs
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Validate intent pages, sitemap, internal links and preserved pricing
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import http from 'node:http';import path from 'node:path';import assert from 'node:assert/strict';import{chromium}from'playwright';
+          const rel=JSON.parse(fs.readFileSync('prepared-v19.json','utf8')),v18=await(await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/69398da8af15029351b9369205770ca50896372f/korea-quote/releases/site-20260911-18.json')).json();
+          for(const f of ['app.js','smartstore-beta.js','lib/estimate.mjs','lib/pricing.mjs','lib/sheet-rate.mjs','api/quote.js','api/rate.js','assets/brand.webp','assets/favicon.svg','google4170efb46fe3af33.html'])assert.equal(rel.hashes[f],v18.hashes[f],f+' changed unexpectedly');
+          const sitemap=Buffer.from(rel.files.find(x=>x.file==='sitemap.xml').data,'base64').toString();for(const u of ['/zigzag/','/korea-exchange-rate/','/korea-proxy-order/','/bunjang-guide/'])assert.ok(sitemap.includes('https://korea-quote-0908.vercel.app'+u));
+          const server=http.createServer((req,res)=>{try{let p=new URL(req.url,'http://x').pathname;if(p==='/api/rate'){res.setHeader('content-type','application/json');res.end(JSON.stringify({ok:true,version:'2026-09-11.19',exchangeRate:38,checkedAt:new Date().toISOString(),source:'google_sheets'}));return;}if(p.endsWith('/'))p+='index.html';const f=path.join('.vercel/output/static',p==='/'?'index.html':p.slice(1));const ext=path.extname(f);res.setHeader('content-type',ext==='.html'?'text/html':ext==='.css'?'text/css':ext==='.js'?'application/javascript':'text/plain');res.end(fs.readFileSync(f));}catch{res.statusCode=404;res.end('not found')}});await new Promise(r=>server.listen(8765,'127.0.0.1',r));
+          let browser;const report={version:rel.version,pages:[],logicPreserved:true};try{browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [1440,393]){const c=await browser.newContext({viewport:{width,height:1200}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__fatfatpigSmartstoreBeta);assert.equal(await page.locator('.seo-more-grid a').count(),4);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.screenshot({path:`evidence/home-${width}.png`,fullPage:true});report.pages.push({path:'/',width,noOverflow:true});await c.close();}
+            const slugs=['zigzag','korea-exchange-rate','korea-proxy-order','bunjang-guide'];for(const slug of slugs){const c=await browser.newContext({viewport:{width:1280,height:1000}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));const r=await page.goto('http://127.0.0.1:8765/'+slug+'/',{waitUntil:'domcontentloaded'});assert.equal(r.status(),200);assert.equal(await page.locator('h1').count(),1);assert.ok((await page.title()).includes('廢廢豬'));assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),'https://korea-quote-0908.vercel.app/'+slug+'/');assert.ok((await page.locator('body').innerText()).length>700);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);const ld=JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());assert.ok(ld['@graph'].some(x=>x['@type']==='Article'));report.pages.push({path:'/'+slug+'/',title:await page.title(),chars:(await page.locator('body').innerText()).length});await c.close();}
+            const c=await browser.newContext({viewport:{width:1280,height:1000}}),page=await c.newPage();await page.goto('http://127.0.0.1:8765/bunjang/',{waitUntil:'domcontentloaded'});assert.equal(await page.locator('a[href="/bunjang-guide/"]').count(),1);await c.close();
+            report.passed=true;fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log('SEO_V19_TESTS_PASSED',JSON.stringify(report));
+          }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
+          JS
+      - name: Save tested v19 release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';const b=fs.readFileSync('prepared-v19.json');const d=createHash('sha256').update(b).digest('hex');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260911-19.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save tested SEO intent pages v19',content:b.toString('base64')})});const j=await r.json();assert.equal(r.status,201,JSON.stringify(j));console.log('V19_RELEASE_SAVED',j.commit.sha,d);
+          JS
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-seo-v19
+          path: |
+            evidence/
+            prepared-v19.json
+          retention-days: 14
