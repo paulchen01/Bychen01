@@ -1,0 +1,39 @@
+{
+  "base": "https://korea-quote-0908.vercel.app",
+  "version": "2026-09-11.16",
+  "deploymentId": "dpl_6dk1J3bcLthKTZX6sw5gYR5Emy1X",
+  "productionVerified": true,
+  "browser": [
+    {
+      "width": 393,
+      "rate": 38,
+      "price": 29800,
+      "total": 847,
+      "noOverflow": true
+    },
+    {
+      "width": 320,
+      "rate": 38,
+      "price": 29800,
+      "total": 847,
+      "noOverflow": true
+    },
+    {
+      "width": 1440,
+      "rate": 38,
+      "price": 29800,
+      "total": 847,
+      "noOverflow": true
+    }
+  ],
+  "rate": {
+    "ok": true,
+    "exchangeRate": 38,
+    "checkedAt": "2026-09-11T03:43:35.553Z",
+    "source": "google_sheets",
+    "cell": "B2",
+    "fromCache": false,
+    "version": "2026-09-11.16"
+  },
+  "checkedAt": "2026-09-11T03:43:59.741Z"
+}
