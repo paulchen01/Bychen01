@@ -1,0 +1,49 @@
+name: Verify SEO intent pages v19 on production
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-seo-production-v19.yml']
+permissions:
+  contents: write
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify original public hostname and new SEO pages
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-11.19',hash=b=>createHash('sha256').update(b).digest('hex'),report={base,version,deploymentId:'dpl_13zzmRTMKKPhKskcPTUgpJh5R81d',productionVerified:false,pages:[]};
+          const get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout(15000)});return{r,b:Buffer.from(await r.arrayBuffer())}};let browser;
+          try{let ready=false,last;for(let i=0;i<20;i++){try{const{r,b}=await get(base+'/api/rate');const d=JSON.parse(b);last=d;if(r.ok&&d.ok&&d.version===version){ready=true;report.rate=d;break}}catch(e){last={error:e.message}}await new Promise(r=>setTimeout(r,4000))}assert.ok(ready,'v19 not live: '+JSON.stringify(last));
+            const{r:rr,b:raw}=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/87b1393f8ad947fa5f28bbcf9586ffb94f64ad1d/korea-quote/releases/site-20260911-19.json');assert.equal(rr.status,200);assert.equal(hash(raw),'eda1574762f7f74c32099fbcd9d6cde50184ead1faac8192995e1ae4c372f4c7');const rel=JSON.parse(raw);
+            for(const f of ['index.html','style.css','guide.css','sitemap.xml','llms.txt','app.js','lib/pricing.mjs','lib/sheet-rate.mjs','google4170efb46fe3af33.html']){const{r,b}=await get(base+'/'+f);assert.equal(r.status,200,f);assert.equal(hash(b),rel.hashes[f],f)}
+            browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [1440,393]){const c=await browser.newContext({viewport:{width,height:1200}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));await page.goto(base+'/?v=20260911-19',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__fatfatpigSmartstoreBeta);assert.equal(await page.locator('.seo-more-grid a').count(),4);assert.equal(await page.locator('#version').innerText(),version);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.screenshot({path:`evidence/live-home-${width}.png`,fullPage:true});report.pages.push({path:'/',width,noOverflow:true});await c.close();}
+            for(const slug of ['zigzag','korea-exchange-rate','korea-proxy-order','bunjang-guide']){const c=await browser.newContext({viewport:{width:1280,height:1000}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));const r=await page.goto(base+'/'+slug+'/',{waitUntil:'domcontentloaded'});assert.equal(r.status(),200);assert.equal(await page.locator('h1').count(),1);assert.ok((await page.title()).includes('廢廢豬'));assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),base+'/'+slug+'/');assert.ok((await page.locator('body').textContent()).trim().length>600);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);report.pages.push({path:'/'+slug+'/',title:await page.title()});await c.close();}
+            const sitemap=(await get(base+'/sitemap.xml')).b.toString();for(const u of ['/zigzag/','/korea-exchange-rate/','/korea-proxy-order/','/bunjang-guide/'])assert.ok(sitemap.includes(base+u));
+            report.productionVerified=true;report.checkedAt=new Date().toISOString();console.log('SEO_V19_PRODUCTION_VERIFIED',JSON.stringify(report));
+          }catch(e){report.error={message:e.message,stack:e.stack};throw e}finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));if(browser)await browser.close()}
+          JS
+      - name: Save acceptance receipt
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';const b=fs.readFileSync('evidence/report.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/acceptance-20260911-19.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Preserve production-verified SEO intent pages v19',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('SAVED_ACCEPTANCE',d.commit.sha);
+          JS
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-seo-v19-production
+          path: evidence/
+          retention-days: 14
