@@ -1,0 +1,49 @@
+name: Inspect SmartStore 13749878148
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/inspect-smartstore-13749878148.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Install browser
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+      - name: Inspect public page and network responses
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import{chromium}from'playwright';
+          const urls=[
+            'https://smartstore.naver.com/deco-deco/products/13749878148',
+            'https://m.smartstore.naver.com/deco-deco/products/13749878148'
+          ];
+          const report=[];
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          try{
+            for(const input of urls){
+              const ctx=await browser.newContext({viewport:{width:393,height:900},locale:'ko-KR',userAgent:'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 Chrome/139.0.0.0 Mobile Safari/537.36'});
+              const page=await ctx.newPage(),responses=[];
+              page.on('response',async r=>{try{const u=r.url(),ct=r.headers()['content-type']||'';if(/smartstore|shopping|product|products|productNo|13749878148/i.test(u)&&(/json|javascript|html/.test(ct)||u.includes('13749878148'))){let text='';if((await r.body()).length<1000000)text=(await r.text()).slice(0,120000);responses.push({url:u,status:r.status(),contentType:ct,body:text});}}catch{}});
+              let nav={};try{const r=await page.goto(input,{waitUntil:'domcontentloaded',timeout:45000});nav={status:r?.status(),url:page.url()};await page.waitForTimeout(10000);}catch(e){nav={error:e.message,url:page.url()};}
+              const title=await page.title();const text=(await page.locator('body').innerText().catch(()=>'' )).slice(0,40000);const html=(await page.content()).slice(0,300000);
+              const meta=await page.evaluate(()=>Object.fromEntries([...document.querySelectorAll('meta')].map(m=>[m.getAttribute('property')||m.getAttribute('name'),m.getAttribute('content')]).filter(x=>x[0]&&x[1]))).catch(()=>({}));
+              const scripts=await page.evaluate(()=>[...document.scripts].map(s=>({id:s.id||'',type:s.type||'',src:s.src||'',text:(s.textContent||'').slice(0,80000)})).filter(x=>x.src||/13749878148|price|salePrice|productNo|product/i.test(x.text))).catch(()=>[]);
+              const record={input,nav,title,text,meta,scripts,responses:responses.slice(-120)};report.push(record);
+              fs.writeFileSync('evidence/'+(input.includes('m.smart')?'mobile':'desktop')+'.json',JSON.stringify(record,null,2));
+              await page.screenshot({path:'evidence/'+(input.includes('m.smart')?'mobile':'desktop')+'.png',fullPage:true}).catch(()=>{});await ctx.close();
+            }
+          }finally{await browser.close();}
+          fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));
+          for(const r of report){console.log('PAGE',JSON.stringify({input:r.input,nav:r.nav,title:r.title,text:r.text.slice(0,4000),meta:r.meta,responseUrls:r.responses.map(x=>x.url).slice(-40)}));}
+          JS
+      - name: Preserve evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartstore-13749878148-inspection
+          path: evidence/
+          retention-days: 7
