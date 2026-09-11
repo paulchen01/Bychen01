@@ -1,0 +1,69 @@
+{
+  "base": "https://korea-quote-0908.vercel.app",
+  "version": "2026-09-11.17",
+  "deploymentId": "dpl_2aFD7nb6WfGSkK3LgqLdZqAVL946",
+  "productionVerified": true,
+  "browser": [
+    {
+      "width": 1440,
+      "stepsNumber": 22,
+      "stepsTitle": 16,
+      "stepsSmall": 12,
+      "contactBody": 14,
+      "contactId": 18,
+      "copyId": 12,
+      "qrCaption": 11,
+      "care": 13,
+      "careButton": 12,
+      "footerBrand": 18,
+      "footerSub": 12,
+      "footerNote": 12,
+      "footerVersion": 11,
+      "noOverflow": true
+    },
+    {
+      "width": 393,
+      "stepsNumber": 14,
+      "stepsTitle": 10,
+      "stepsSmall": 8,
+      "contactBody": 10,
+      "contactId": 14,
+      "copyId": 10,
+      "qrCaption": 7,
+      "care": 9,
+      "careButton": 9,
+      "footerBrand": 20,
+      "footerSub": 8,
+      "footerNote": 8,
+      "footerVersion": 7,
+      "noOverflow": true
+    },
+    {
+      "width": 320,
+      "stepsNumber": 14,
+      "stepsTitle": 10,
+      "stepsSmall": 8,
+      "contactBody": 10,
+      "contactId": 14,
+      "copyId": 10,
+      "qrCaption": 7,
+      "care": 9,
+      "careButton": 9,
+      "footerBrand": 20,
+      "footerSub": 8,
+      "footerNote": 8,
+      "footerVersion": 7,
+      "noOverflow": true
+    }
+  ],
+  "rate": {
+    "ok": true,
+    "exchangeRate": 38,
+    "checkedAt": "2026-09-11T07:16:19.202Z",
+    "source": "google_sheets",
+    "cell": "B2",
+    "fromCache": false,
+    "version": "2026-09-11.17"
+  },
+  "checkedAt": "2026-09-11T07:16:40.687Z"
+}
