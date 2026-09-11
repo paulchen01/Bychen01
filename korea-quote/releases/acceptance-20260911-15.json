@@ -1,0 +1,67 @@
+{
+  "base": "https://korea-quote-0908.vercel.app",
+  "version": "2026-09-11.15",
+  "deploymentId": "dpl_4BV5JZo2Uz6FeDYi933bnLWNxyLP",
+  "productionVerified": true,
+  "sheetModified": false,
+  "sourceHashesMatched": [
+    "app.js",
+    "assets/brand.webp",
+    "assets/favicon.svg",
+    "assets/line-qr.png",
+    "google4170efb46fe3af33.html",
+    "index.html",
+    "lib/domestic.mjs",
+    "lib/estimate.mjs",
+    "lib/extract.mjs",
+    "lib/inquiry.mjs",
+    "lib/platform-fee.mjs",
+    "lib/platforms.mjs",
+    "lib/pricing.mjs",
+    "lib/quote.mjs",
+    "lib/retail.mjs",
+    "lib/sheet-rate.mjs",
+    "robots.txt",
+    "sitemap.xml",
+    "style.css"
+  ],
+  "browser": [
+    {
+      "width": 393,
+      "title": "代下單初步報價",
+      "subtitle": "（協助下單寄您提供的韓國地址）",
+      "rate": 38,
+      "total": 4608,
+      "copyAndLineVerified": true,
+      "noOverflow": true
+    },
+    {
+      "width": 320,
+      "title": "代下單初步報價",
+      "subtitle": "（協助下單寄您提供的韓國地址）",
+      "rate": 38,
+      "total": 4608,
+      "copyAndLineVerified": true,
+      "noOverflow": true
+    },
+    {
+      "width": 1440,
+      "title": "代下單初步報價",
+      "subtitle": "（協助下單寄您提供的韓國地址）",
+      "rate": 38,
+      "total": 4608,
+      "copyAndLineVerified": true,
+      "noOverflow": true
+    }
+  ],
+  "rate": {
+    "ok": true,
+    "exchangeRate": 38,
+    "checkedAt": "2026-09-11T02:38:26.321Z",
+    "source": "google_sheets",
+    "cell": "B2",
+    "fromCache": false,
+    "version": "2026-09-11.15"
+  },
+  "checkedAt": "2026-09-11T02:39:03.805Z"
+}
