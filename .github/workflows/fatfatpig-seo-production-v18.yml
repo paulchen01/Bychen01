@@ -1,0 +1,50 @@
+name: Verify SEO v18 on production
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-seo-production-v18.yml']
+permissions:
+  contents: write
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify original public hostname, SEO metadata and landing pages
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-11.18',deploymentId='dpl_8i7aChxcTiHZ3an3tQnmxBhPr1Ro',hash=b=>createHash('sha256').update(b).digest('hex');const report={base,version,deploymentId,productionVerified:false,pages:[]};
+          const get=async u=>{const r=await fetch(u,{cache:'no-store',redirect:'follow',signal:AbortSignal.timeout(15000)});return{r,b:Buffer.from(await r.arrayBuffer())}};let browser;
+          try{
+            let ready=false,last;for(let i=0;i<20;i++){try{const{r,b}=await get(base+'/api/rate');const d=JSON.parse(b);last=d;if(r.ok&&d.ok&&d.version===version){ready=true;report.rate=d;break}}catch(e){last={error:e.message}}await new Promise(r=>setTimeout(r,4000))}assert.ok(ready,'v18 not live: '+JSON.stringify(last));
+            const{r:rr,b:raw}=await get('https://raw.githubusercontent.com/paulchen01/Bychen01/69398da8af15029351b9369205770ca50896372f/korea-quote/releases/site-20260911-18.json');assert.equal(rr.status,200);assert.equal(hash(raw),'1409264b83c816a0fee0d9620f6794a570c42e0630301077c743c51230a3a578');const release=JSON.parse(raw);
+            for(const f of ['index.html','style.css','seo-pages.css','sitemap.xml','llms.txt','app.js','smartstore-beta.js','lib/estimate.mjs','lib/pricing.mjs','lib/sheet-rate.mjs','google4170efb46fe3af33.html']){const{r,b}=await get(base+'/'+f);assert.equal(r.status,200,f);assert.equal(hash(b),release.hashes[f],f)}
+            const{r:sm,b:smb}=await get(base+'/sitemap.xml');assert.equal(sm.status,200);const sitemap=smb.toString();for(const u of ['/','/bunjang/','/naver-smartstore/','/musinsa/','/fruitsfamily/','/olive-young/'])assert.ok(sitemap.includes(base+u));
+            browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+            for(const width of [1440,393]){const c=await browser.newContext({viewport:{width,height:1200}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));const home=await page.goto(base+'/?v=20260911-18',{waitUntil:'networkidle'});assert.equal(home.status(),200);await page.waitForFunction(()=>window.__fatfatpigSmartstoreBeta);assert.equal(await page.title(),'廢廢豬韓國代購｜Bunjang・Naver・Musinsa 商品台幣估價');assert.equal(await page.locator('h1').innerText(),'韓國代購好物，慢慢挑。\n心動的價格，先幫你算。');assert.equal(await page.locator('.seo-platform-grid a').count(),5);assert.equal(await page.locator('.seo-faq details').count(),4);assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1');const ld=JSON.parse(await page.locator('script[type="application/ld+json"]').innerText());assert.ok(ld['@graph'].some(x=>x['@type']==='Organization'&&x.sameAs?.includes('https://shopee.tw/chenby')));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.screenshot({path:`evidence/home-${width}.png`,fullPage:true});report.pages.push({path:'/',width,noOverflow:true});await c.close()}
+            for(const slug of ['bunjang','naver-smartstore','musinsa','fruitsfamily','olive-young']){const c=await browser.newContext({viewport:{width:1280,height:1000}}),page=await c.newPage();const r=await page.goto(base+'/'+slug+'/',{waitUntil:'domcontentloaded'});assert.equal(r.status(),200,slug);assert.equal(await page.locator('h1').count(),1);assert.ok((await page.title()).includes('廢廢豬'));assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'),base+'/'+slug+'/');assert.ok((await page.locator('body').innerText()).length>350);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));report.pages.push({path:'/'+slug+'/',title:await page.title()});await c.close()}
+            report.productionVerified=true;report.checkedAt=new Date().toISOString();fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log('SEO_V18_PRODUCTION_VERIFIED',JSON.stringify(report));
+          }catch(e){report.error={message:e.message,stack:e.stack};fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));throw e}finally{if(browser)await browser.close()}
+          JS
+      - name: Save acceptance receipt
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';const b=fs.readFileSync('evidence/report.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/acceptance-20260911-18.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Preserve production verified SEO v18 acceptance',content:b.toString('base64')})});const d=await r.json();assert.equal(r.status,201,JSON.stringify(d));console.log('SAVED_ACCEPTANCE',d.commit.sha);
+          JS
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-seo-v18-production
+          path: evidence/
+          retention-days: 14
