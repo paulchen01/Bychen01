@@ -1,0 +1,61 @@
+name: Prepare pricing tier v20
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-pricing-v20.yml']
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Build v20 from verified v19
+        run: |
+          curl --fail --silent --show-error --max-time 40 'https://raw.githubusercontent.com/paulchen01/Bychen01/810158a8aefc34b680b1dec4d9aafb7f09b529d5/korea-quote/releases/build-20260915-20.mjs' -o build.mjs
+          node build.mjs
+      - name: Verify tier boundaries and preserved logic
+        run: |
+          mkdir -p evidence/lib
+          cp .vercel/output/static/lib/pricing.mjs evidence/lib/pricing.mjs
+          cp .vercel/output/static/lib/estimate.mjs evidence/lib/estimate.mjs
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          const p=await import('./evidence/lib/pricing.mjs');
+          assert.equal(p.PRICING_VERSION,'2026-09-15.5');
+          assert.equal(p.FEE_TIERS[0].max,25000);assert.equal(p.FEE_TIERS[0].range,'₩25,000 以下（含）');
+          assert.equal(p.FEE_TIERS[1].min,25001);assert.equal(p.FEE_TIERS[1].max,79999);assert.equal(p.FEE_TIERS[1].range,'₩25,001～79,999');
+          const cases=[
+            [1,0,'fixed50'],[20000,0,'fixed50'],[24999,0,'fixed50'],[25000,0,'fixed50'],
+            [25001,0,'percent8'],[24000,1001,'percent8'],[79999,0,'percent8'],[80000,0,'percent5'],
+            [149999,0,'percent5'],[150000,0,'percent3'],[199999,0,'percent3'],[200000,0,'free']
+          ];
+          for(const [price,ship,tier] of cases){const q=p.calculate(price,ship,38);assert.equal(q.tierId,tier,`${price}+${ship}`);}
+          assert.equal(p.calculate(25000,0,38).totalTwd,708);
+          assert.equal(p.calculate(25001,0,38).totalTwd,711);
+          const html=fs.readFileSync('.vercel/output/static/index.html','utf8');assert.ok(html.includes('25,000 韓幣含以下固定加 NT$50'));assert.ok(!html.includes('20,000 韓幣含以下固定加 NT$50'));
+          console.log('BOUNDARY_TESTS_PASSED',JSON.stringify({fixedMax:25000,eightPercentMin:25001,total25000:p.calculate(25000,0,38).totalTwd,total25001:p.calculate(25001,0,38).totalTwd,cases:cases.length}));
+          JS
+      - name: Preserve unrelated core hashes
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          const v20=JSON.parse(fs.readFileSync('prepared-v20.json','utf8'));const v19=await(await fetch('https://raw.githubusercontent.com/paulchen01/Bychen01/87b1393f8ad947fa5f28bbcf9586ffb94f64ad1d/korea-quote/releases/site-20260911-19.json')).json();
+          for(const f of ['app.js','smartstore-beta.js','lib/estimate.mjs','lib/sheet-rate.mjs','api/quote.js','api/rate.js','sitemap.xml','robots.txt'])assert.equal(v20.hashes[f],v19.hashes[f],f+' changed unexpectedly');
+          console.log('PRESERVATION_CHECK_PASSED');
+          JS
+      - name: Save tested v20 release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';const b=fs.readFileSync('prepared-v20.json');const d=createHash('sha256').update(b).digest('hex');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/site-20260915-20.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Save tested 25k pricing tier v20 release',content:b.toString('base64')})});const j=await r.json();assert.equal(r.status,201,JSON.stringify(j));console.log('V20_RELEASE_SAVED',j.commit.sha,d);
+          JS
+      - name: Preserve evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-pricing-v20
+          path: |
+            prepared-v20.json
+            evidence/
+          retention-days: 14
