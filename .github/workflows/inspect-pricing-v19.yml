@@ -1,0 +1,20 @@
+name: Inspect pricing v19
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/inspect-pricing-v19.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect pricing and 20k references
+        run: |
+          node --input-type=module <<'JS'
+          const url='https://raw.githubusercontent.com/paulchen01/Bychen01/87b1393f8ad947fa5f28bbcf9586ffb94f64ad1d/korea-quote/releases/site-20260911-19.json';
+          const r=await fetch(url); if(!r.ok) throw new Error(String(r.status)); const rel=await r.json();
+          const get=f=>Buffer.from(rel.files.find(x=>x.file===f).data,'base64').toString('utf8');
+          console.log('=== lib/pricing.mjs ===\n'+get('lib/pricing.mjs'));
+          for(const f of rel.files){if(!/\.(?:js|mjs|html|txt|xml|json|css)$/.test(f.file))continue; const s=Buffer.from(f.data,'base64').toString('utf8'); if(/20,00[01]|\b20000\b|\b20001\b/.test(s)){console.log('\n=== MATCH',f.file,'==='); for(const m of s.matchAll(/.{0,100}(?:20,000|20,001|\b20000\b|\b20001\b).{0,160}/g)) console.log(m[0].replace(/\s+/g,' '));}}
+          JS
