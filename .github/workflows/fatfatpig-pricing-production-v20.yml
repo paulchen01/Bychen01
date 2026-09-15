@@ -1,0 +1,52 @@
+name: Verify pricing tier v20 on production
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-pricing-production-v20.yml']
+permissions:
+  contents: write
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Install browser and fonts
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Verify public site and 25k boundary
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import{chromium}from'playwright';
+          const base='https://korea-quote-0908.vercel.app',version='2026-09-15.20',releaseUrl='https://raw.githubusercontent.com/paulchen01/Bychen01/fe0886cbca65cf97884e486fbc18cb67b92ff20b/korea-quote/releases/site-20260915-20.json';
+          const hash=b=>createHash('sha256').update(b).digest('hex'),get=async u=>{const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout(15000)});return{r,b:Buffer.from(await r.arrayBuffer())}};const report={base,version,deploymentId:'dpl_GjjhvtnUKBxSdeCnjybsSFrZdi6j',productionVerified:false,browser:[]};let browser;
+          try{let ready=false,last;for(let i=0;i<20;i++){try{const{r,b}=await get(base+'/api/rate');const d=JSON.parse(b);last=d;if(r.ok&&d.ok&&d.version===version){ready=true;report.rate=d;break}}catch(e){last={error:e.message}}await new Promise(r=>setTimeout(r,4000))}assert.ok(ready,'v20 not live: '+JSON.stringify(last));
+          const{r:rr,b:raw}=await get(releaseUrl);assert.equal(rr.status,200);assert.equal(hash(raw),'1b2553a5baebc2598a7e4f4c07e222af59a309a99b25f39ea15367ef4dc3a191');const rel=JSON.parse(raw);
+          for(const f of ['index.html','lib/pricing.mjs','app.js','lib/estimate.mjs','lib/sheet-rate.mjs']){const{r,b}=await get(base+'/'+f);assert.equal(r.status,200,f);assert.equal(hash(b),rel.hashes[f],f)}
+          const pfile=rel.files.find(x=>x.file==='lib/pricing.mjs');fs.mkdirSync('evidence/lib',{recursive:true});fs.writeFileSync('evidence/lib/pricing.mjs',Buffer.from(pfile.data,'base64'));const p=await import('./evidence/lib/pricing.mjs');assert.equal(p.FEE_TIERS[0].max,25000);assert.equal(p.FEE_TIERS[1].min,25001);
+          browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          for(const width of [393,1440]){const c=await browser.newContext({viewport:{width,height:1200}}),page=await c.newPage(),errs=[];page.on('pageerror',e=>errs.push(e.message));const rateP=page.waitForResponse(r=>r.url()===base+'/api/rate');await page.goto(base+'/?v=20260915-20',{waitUntil:'networkidle'});const rate=await(await rateP).json();await page.waitForFunction(v=>document.getElementById('rate').textContent===String(v),rate.exchangeRate);assert.equal(await page.locator('#version').innerText(),version);
+          const feeText=await page.locator('.fee-table').innerText();assert.ok(feeText.includes('₩25,000 以下（含）'));assert.ok(feeText.includes('₩25,001～79,999'));assert.ok(!feeText.includes('₩20,000 以下（含）'));assert.ok((await page.locator('.formula-card').innerText()).includes('25,000 韓幣含以下固定加 NT$50'));
+          await page.locator('.manual-details summary').click();const quote=async price=>{await page.locator('#p').fill(String(price));await page.locator('#s').fill('');await page.locator('#pf').fill('');await page.locator('#manual button').click();await page.locator('#result:not([hidden])').waitFor({timeout:10000});return{total:await page.locator('#total').innerText(),tier:await page.locator('#tier').innerText(),math:await page.locator('#math').innerText()}};
+          const q25=await quote(25000),expected25=p.calculate(25000,0,rate.exchangeRate);assert.equal(q25.total,expected25.totalTwd.toLocaleString('zh-TW'));assert.ok(q25.tier.includes('固定')||q25.tier.includes('NT$50'));
+          const q25001=await quote(25001),expected25001=p.calculate(25001,0,rate.exchangeRate);assert.equal(q25001.total,expected25001.totalTwd.toLocaleString('zh-TW'));assert.ok(q25001.tier.includes('8%'));
+          assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errs,[]);await page.locator('.formula-card').screenshot({path:`evidence/live-fee-table-${width}.png`});report.browser.push({width,rate:rate.exchangeRate,total25000:expected25.totalTwd,total25001:expected25001.totalTwd,fixedTierAt25000:true,eightPercentAt25001:true,noOverflow:true});await c.close()}
+          report.productionVerified=true;report.checkedAt=new Date().toISOString();console.log('V20_PRODUCTION_VERIFIED',JSON.stringify(report));}catch(e){report.error={message:e.message,stack:e.stack};throw e}finally{fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));if(browser)await browser.close()}
+          JS
+      - name: Save acceptance receipt
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';const b=fs.readFileSync('evidence/report.json');const r=await fetch('https://api.github.com/repos/paulchen01/Bychen01/contents/korea-quote/releases/acceptance-20260915-20.json',{method:'PUT',headers:{Authorization:'Bearer '+process.env.GITHUB_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({message:'Preserve production acceptance for 25k pricing v20',content:b.toString('base64')})});const j=await r.json();assert.equal(r.status,201,JSON.stringify(j));console.log('SAVED_ACCEPTANCE',j.commit.sha);
+          JS
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fatfatpig-pricing-v20-production
+          path: evidence/
+          retention-days: 14
