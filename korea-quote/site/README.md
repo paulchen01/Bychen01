@@ -1,8 +1,18 @@
 # 廢廢豬韓國代購報價系統
 
-本目錄是可直接維護與測試的網站來源，從既有 `site-20260915-20.json` 核對 SHA-256 後還原。2026-10-17 更新版本為 **2026-10-17.21**。原始歷次發布檔與驗收紀錄保留於 `../releases/`。
+本目錄是可直接維護與測試的網站來源，從既有 `site-20260915-20.json` 核對 SHA-256 後還原。2026-10-17 更新版本為 **2026-10-17.22**。原始歷次發布檔與驗收紀錄保留於 `../releases/`。
 
-## 本次修正
+## v22 平台抽測與相容性修正
+
+- Olive Young 保留主商品可核對的一般折扣，再排除需要領券、會員或指定付款條件的價格。重新依一般售價判斷滿額免運；折扣明細衝突或條件無法判斷時停止報價。
+- Zigzag 接受已觀測到官方 HTTP 308 的 `/p/<商品ID>` 分享網址，集中轉為原有商品路徑。
+- Pocamarket 支援已觀測的 `/zh-tw/search/detail/<商品ID>` 語系路徑，保留 global 市場與商品 ID；美元商品仍需可驗證的韓國原價。
+- X 的 oEmbed 讀取可跟隨 `publish.twitter.com` 到 `publish.x.com` 的官方同貼文轉址。逐跳驗證、最多三次轉址；登入、限流、不同貼文或未支援的目的地會停止。
+- Naver 兩個正式商品樣本均受平台 HTTP 429 限制。另確認新版主商品 state 與既有 JSON-LD parser 的格式差異，本輪未修改此部分，不能標示為自動報價已通過。
+
+完整抽測來源、正式 API 回應與限制保存在 [平台查核紀錄](../releases/platform-audit-20261017-22.md) 與同名 JSON。目前 v22 尚待正式發布驗證。
+
+## v21 Bunjang 與自動查價修正
 
 - Bunjang 優先讀取官方公開商品詳情，核對主商品編號、韓元售價、販售狀態與韓國一般宅配費。
 - 目前官方路徑為 `https://api.bunjang.co.kr/api/pms/v1/products/{id}/detail/web`。僅讀取 `data.product`，不從推薦商品或賣家敘述猜售價。
@@ -32,7 +42,7 @@ npm test
 npm run build
 ```
 
-`npm test` 分別執行 28 項 API／網址／費用回歸、63 項 reader 回歸、35 項 DOM 互動測試。DOM 測試載入實際 app.js 與 HTML，以受控 API 回應驗證自動提交、重複提交、取消與亂序回應；不是正式站瀏覽器驗收。正常 reader 文字 fixtures 為依已觀察布局建立的合成樣本；官方 API fixtures 為公開實測回應的必要欄位，附來源日期。
+`npm test` 共執行 193 項測試：28 項 Bunjang API／網址／費用、63 項 reader、16 項 Olive Young 折扣與運費、12 項平台網址與幣別、39 項 X 官方轉址與貼文解析，以及 35 項 DOM 互動測試。DOM 測試載入實際 app.js 與 HTML，以受控 API 回應驗證自動提交、重複提交、取消與亂序回應；不是正式站瀏覽器驗收。正常 reader 文字 fixtures 為依已觀察布局建立的合成樣本；官方 API fixtures 為公開實測回應的必要欄位，附來源日期。
 
 `npm run build` 產生 `.vercel/output`，包含靜態網站及 `/api/health`、`/api/rate`、`/api/quote` 三個函式。使用者仍可按原按鈕重試與手動試算。
 
@@ -40,7 +50,7 @@ npm run build
 
 原站：`https://korea-quote-0908.vercel.app`。發布目標必須是既有 Vercel 專案 `korea-quote-0908`，不可建立替代專案或改變網站權限。
 
-從專案根目錄執行 `node korea-quote/scripts/release.mjs --check`，可核對已保存的 v21 發布檔是否與目前來源完全一致。產生新發布快照則執行相同指令但省略 `--check`。發布前需確認正確團隊、專案與已測試 commit；發布後應實測 `/api/health` 的版本與使用者商品 `/api/quote` 的內容。
+從專案根目錄執行 `node korea-quote/scripts/release.mjs --check`，可核對已保存的 v22 發布檔是否與目前來源完全一致。產生新發布快照則執行相同指令但省略 `--check`。發布前需確認正確團隊、專案與已測試 commit；發布後應實測 `/api/health` 的版本與使用者商品 `/api/quote` 的內容。
 
 **2026-10-17 正式發布完成：**使用者完成 Vercel 官方登入授權後，已透過 CLI 發布至原 `bychen999 / korea-quote-0908` 專案，正式網址維持 `https://korea-quote-0908.vercel.app`。部署 ID 為 `dpl_CU3veVpyxbxybm6Am8SPirkrEsHW`，發布來源 commit 為 `584478b5ff1546d43fd3d278414a8624bcd703c9`，發布檔 SHA-256 維持 `b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1`。
 

@@ -7,6 +7,7 @@ import {parseOliveYoungReader,parseMusinsa,musinsaCart} from '../lib/retail.mjs'
 import {getRate,RateError} from '../lib/sheet-rate.mjs';
 import {withPlatformFee} from '../lib/platform-fee.mjs';
 import {loadBunjang,resolveBunjangTarget} from '../lib/bunjang.mjs';
+import {loadXEmbed} from '../lib/x.mjs';
 const cache=new Map(),pending=new Map(),hits=new Map();
 const LIMIT=3000000;
 export async function readLimited(r){
@@ -58,10 +59,7 @@ export async function lookup(input,fetchImpl=fetch){
       const raw=await readLimited(r);
       p=parseOliveYoungReader(raw,target.url);
     }else if(target.platformId==='x'){
-      const publicUrl=target.url.replace('https://x.com/','https://twitter.com/');
-      const r=await fetchImpl('https://publish.twitter.com/oembed?url='+encodeURIComponent(publicUrl)+'&omit_script=1&hide_thread=true',{headers:{Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(Math.max(1,Math.min(14000,deadline-Date.now())))});
-      if(!r.ok){await r.body?.cancel();throw new PlatformError('PUBLIC_POST_UNAVAILABLE','這則推文未能公開讀取，可能需要登入、已刪除或受到平台限制。請到 LINE 確認。');}
-      p=parseXEmbed(await readLimited(r),target.url);
+      p=parseXEmbed(await loadXEmbed(target,fetchImpl,deadline,readLimited),target.url);
     }else{
       if(html===null){const page=await publicPage(target,fetchImpl,deadline);html=page.html;target=page.target;}
       const parser={fruits:parseFruits,zigzag:parseZigzag,naver:parseNaver,poca:parsePoca,musinsa:parseMusinsa}[target.platformId];

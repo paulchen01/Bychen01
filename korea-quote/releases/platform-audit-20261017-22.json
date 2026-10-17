@@ -1,0 +1,857 @@
+{
+  "auditDate": "2026-10-17",
+  "updatedAt": "2026-10-17T13:03:01.120490+00:00",
+  "request": "其他的平台也測試一下是否可以報價",
+  "productionSite": "https://korea-quote-0908.vercel.app",
+  "initialVersion": "2026-10-17.21",
+  "candidateVersion": "2026-10-17.22",
+  "method": {
+    "initialProductionQuoteRequests": 12,
+    "coveredPlatforms": [
+      "bunjang",
+      "fruits",
+      "zigzag",
+      "naver",
+      "poca",
+      "oliveyoung",
+      "musinsa",
+      "x"
+    ],
+    "publicPagesOnly": true,
+    "browserInteractionVerified": false,
+    "browserLimitation": "Browser plugin requires the originating browser context; actual API checks and local DOM tests are recorded separately.",
+    "samplingLimitation": "Selected public product/post samples only; success is not a guarantee for every product or account-dependent price.",
+    "syntheticTestsAreNotLivePrices": true
+  },
+  "initialChecks": [
+    {
+      "label": "musinsa",
+      "platform": "musinsa",
+      "inputUrl": "https://www.musinsa.com/products/4838210",
+      "checkedAt": "2026-10-17T12:48:44.640005+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "musinsa",
+          "platformName": "Musinsa",
+          "id": "4838210",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://www.musinsa.com/products/4838210",
+          "key": "musinsa:4838210",
+          "title": "프린트스타(PRINTSTAR) [3PACK] 20수 베이직 무지 스탠다드 반팔 티셔츠",
+          "currency": "KRW",
+          "priceKrw": 23700,
+          "shippingKrw": null,
+          "platformFeeKrw": null,
+          "image": "https://image.msscdn.net/images/goods_img/20250226/4838210/4838210_17405739023711_500.jpg",
+          "warnings": [
+            "按韓國商品公開售價粗估，未擅用會員等級、個人優惠券或登入後折扣。"
+          ],
+          "sourcePrice": 23700,
+          "evidence": {
+            "price": "本商品 product:price:amount=23700 KRW",
+            "shipping": "未取得公開一般配送費",
+            "productId": "4838210"
+          },
+          "discountNotice": "因常有折扣，故真人報價應能更便宜，以實際報價為主",
+          "status": "needs_confirmation",
+          "reasonCode": "SHIPPING_UNKNOWN",
+          "notice": "按韓國商品公開售價粗估，未擅用會員等級、個人優惠券或登入後折扣。",
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://www.musinsa.com/products/4838210",
+          "priceSourceUrl": "https://www.musinsa.com/products/4838210",
+          "fetchedAt": "2026-10-17T12:48:44.567Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 23700,
+          "shippingKrw": null,
+          "subtotalKrw": 23700,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "fixed50",
+          "tierRange": "₩25,000 以下（含）",
+          "feeType": "fixed",
+          "servicePercent": null,
+          "fixedFeeTwd": 50,
+          "serviceLabel": "固定 NT$50",
+          "baseTwd": 623.6842105263158,
+          "serviceTwd": 50,
+          "totalTwd": 674,
+          "shippingExcluded": true,
+          "estimateScope": "product_only",
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-17T12:48:44.590Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:48:44.590Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "oliveyoung",
+      "platform": "oliveyoung",
+      "inputUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+      "checkedAt": "2026-10-17T12:48:55.218322+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "oliveyoung",
+          "platformName": "Olive Young",
+          "id": "A000000260412",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+          "key": "oliveyoung:A000000260412",
+          "title": "[10월 올영픽/초경량] 라운드랩 자작나무 수분 선세럼 50ml 기획(+클렌저 20ml)",
+          "currency": "KRW",
+          "priceKrw": 27000,
+          "shippingKrw": 0,
+          "platformFeeKrw": null,
+          "image": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails/10/0000/0026/A00000026041212ko.jpg?l=ko&QT=85&SF=webp&sharpen=1x0.5",
+          "warnings": [
+            "以本商品公開售價粗估，款式、庫存與實際優惠以真人確認為準。"
+          ],
+          "sourcePrice": 27000,
+          "platformFeeEvidence": null,
+          "platformFeeStatus": "unknown",
+          "priceIsStarting": false,
+          "evidence": {
+            "price": "판매가 27,000원",
+            "shipping": "일반배송 2,500원 (20,000원 이상 무료배송)",
+            "productId": "A000000260412"
+          },
+          "status": "quoted",
+          "reasonCode": null,
+          "notice": "以本商品公開售價粗估，款式、庫存與實際優惠以真人確認為準。",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+          "priceSourceUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+          "fetchedAt": "2026-10-17T12:48:55.172Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 27000,
+          "shippingKrw": 0,
+          "subtotalKrw": 27000,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "percent8",
+          "tierRange": "₩25,001～79,999",
+          "feeType": "percent",
+          "servicePercent": 8,
+          "fixedFeeTwd": 0,
+          "serviceLabel": "換算台幣後加 8%",
+          "baseTwd": 710.5263157894736,
+          "serviceTwd": 56.84210526315789,
+          "totalTwd": 768,
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-17T12:48:44.590Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:48:44.590Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": true
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "bunjang_control",
+      "platform": "bunjang",
+      "inputUrl": "https://m.bunjang.co.kr/products/386933481",
+      "checkedAt": "2026-10-17T12:48:44.648368+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "bunjang",
+          "platformName": "Bunjang 閃電拍賣",
+          "id": "386933481",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://m.bunjang.co.kr/products/386933481",
+          "key": "bunjang:386933481",
+          "title": "비투비) 삐프렌즈 인형 일괄",
+          "currency": "KRW",
+          "priceKrw": 64000,
+          "shippingKrw": 0,
+          "shippingMethod": "韓國一般宅配",
+          "image": "https://media.bunjang.co.kr/product/386933481_1_1770135718_w320.jpg",
+          "status": "quoted",
+          "reasonCode": null,
+          "notice": "按主商品標價及韓國一般宅配估算；款式、數量、平台費與庫存請到 LINE 確認。",
+          "extractionSource": "bunjang_public_api",
+          "sourceUpdatedAt": "2026-10-15T06:10:58.671288Z",
+          "evidence": {
+            "productId": "386933481",
+            "price": "data.product.price = 64000",
+            "shipping": "trade.freeShipping = true",
+            "saleStatus": "SELLING"
+          },
+          "apiPath": "/api/pms/v1/products/{id}/detail/web",
+          "dataSourceUrl": "https://api.bunjang.co.kr/api/pms/v1/products/386933481/detail/web",
+          "platformFeeKrw": null,
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://m.bunjang.co.kr/products/386933481",
+          "priceSourceUrl": "https://m.bunjang.co.kr/products/386933481",
+          "fetchedAt": "2026-10-17T12:48:44.407Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 64000,
+          "shippingKrw": 0,
+          "subtotalKrw": 64000,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "percent8",
+          "tierRange": "₩25,001～79,999",
+          "feeType": "percent",
+          "servicePercent": 8,
+          "fixedFeeTwd": 0,
+          "serviceLabel": "換算台幣後加 8%",
+          "baseTwd": 1684.2105263157894,
+          "serviceTwd": 134.73684210526315,
+          "totalTwd": 1819,
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-17T12:48:44.590Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:48:44.590Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "musinsa_first_purchase",
+      "platform": "musinsa",
+      "inputUrl": "https://www.musinsa.com/products/2982478",
+      "checkedAt": "2026-10-17T12:51:15.364813+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "musinsa",
+          "platformName": "Musinsa",
+          "id": "2982478",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://www.musinsa.com/products/2982478",
+          "key": "musinsa:2982478",
+          "title": "무신사 스탠다드(MUSINSA STANDARD) 컴프레션 반팔 티셔츠 [블랙]",
+          "currency": "KRW",
+          "priceKrw": 9900,
+          "shippingKrw": null,
+          "platformFeeKrw": null,
+          "image": "https://image.msscdn.net/images/goods_img/20221214/2982478/2982478_1_500.jpg",
+          "warnings": [],
+          "sourcePrice": 9900,
+          "status": "needs_confirmation",
+          "notice": "商品販售狀態尚待確認。",
+          "reasonCode": "UNAVAILABLE_PRODUCT",
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://www.musinsa.com/products/2982478",
+          "priceSourceUrl": "https://www.musinsa.com/products/2982478",
+          "fetchedAt": "2026-10-17T12:51:15.312Z",
+          "fromCache": false
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:51:04.140Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": true
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "oliveyoung_second",
+      "platform": "oliveyoung",
+      "inputUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000165177",
+      "checkedAt": "2026-10-17T12:51:23.058686+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "oliveyoung",
+          "platformName": "Olive Young",
+          "id": "A000000165177",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000165177",
+          "key": "oliveyoung:A000000165177",
+          "title": "[저자극/약산성] 라운드랩 1025 독도 클렌저 200ml+200ml",
+          "currency": "KRW",
+          "priceKrw": 23500,
+          "shippingKrw": 0,
+          "platformFeeKrw": null,
+          "image": "https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails/10/0000/0016/A00000016517716ko.jpg?l=ko&QT=85&SF=webp&sharpen=1x0.5",
+          "warnings": [
+            "以本商品公開售價粗估，款式、庫存與實際優惠以真人確認為準。"
+          ],
+          "sourcePrice": 23500,
+          "platformFeeEvidence": null,
+          "platformFeeStatus": "unknown",
+          "priceIsStarting": false,
+          "evidence": {
+            "price": "23,500 원",
+            "shipping": "일반배송 2,500원 (20,000원 이상 무료배송)",
+            "productId": "A000000165177"
+          },
+          "status": "quoted",
+          "reasonCode": null,
+          "notice": "以本商品公開售價粗估，款式、庫存與實際優惠以真人確認為準。",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000165177",
+          "priceSourceUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000165177",
+          "fetchedAt": "2026-10-17T12:51:22.824Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 23500,
+          "shippingKrw": 0,
+          "subtotalKrw": 23500,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "fixed50",
+          "tierRange": "₩25,000 以下（含）",
+          "feeType": "fixed",
+          "servicePercent": null,
+          "fixedFeeTwd": 50,
+          "serviceLabel": "固定 NT$50",
+          "baseTwd": 618.421052631579,
+          "serviceTwd": 50,
+          "totalTwd": 669,
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-17T12:51:22.998Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:51:22.998Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "fruits",
+      "platform": "fruits",
+      "inputUrl": "https://fruitsfamily.com/product/6x0ik/beams-military-m65-jacket",
+      "checkedAt": "2026-10-17T12:51:03.656075+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "fruits",
+          "platformName": "FruitsFamily",
+          "id": "6x0ik",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://fruitsfamily.com/product/6x0ik/beams-military-m65-jacket",
+          "key": "fruits:6x0ik",
+          "title": "Beams Military M65 Jacket",
+          "currency": "KRW",
+          "priceKrw": 145000,
+          "shippingKrw": null,
+          "image": "https://image.production.fruitsfamily.com/public/product/resized%40width620/PJ6ybkw4E-45fb178438c8.jpg",
+          "warnings": [
+            "以頁面主商品標價估算；款式、平台另收費用及庫存由廢廢豬確認。"
+          ],
+          "sourcePrice": 145000,
+          "platformFeeKrw": null,
+          "platformFeeEvidence": null,
+          "platformFeeStatus": "unknown",
+          "evidence": {
+            "price": "主商品 JSON-LD Offer.price：145000 KRW",
+            "shipping": "主商品未提供明確境內運費"
+          },
+          "status": "needs_confirmation",
+          "notice": "已依商品售價粗估，未含韓國境內運費；實際運費與正式報價請到 LINE 確認。",
+          "reasonCode": "SHIPPING_UNKNOWN",
+          "platformFeeNotice": "未標示，本次未計入；需登入後由廢廢豬確認。",
+          "originalUrl": "https://fruitsfamily.com/product/6x0ik/beams-military-m65-jacket",
+          "priceSourceUrl": "https://fruitsfamily.com/product/6x0ik/beams-military-m65-jacket",
+          "fetchedAt": "2026-10-17T12:51:03.454Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 145000,
+          "shippingKrw": null,
+          "subtotalKrw": 145000,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "percent5",
+          "tierRange": "₩80,000～149,999",
+          "feeType": "percent",
+          "servicePercent": 5,
+          "fixedFeeTwd": 0,
+          "serviceLabel": "換算台幣後加 5%",
+          "baseTwd": 3815.7894736842104,
+          "serviceTwd": 190.78947368421052,
+          "totalTwd": 4007,
+          "shippingExcluded": true,
+          "estimateScope": "product_only",
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-17T12:51:03.607Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:51:03.607Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      },
+      "officialEvidence": {
+        "sourceUrl": "https://fruitsfamily.com/product/6x0ik/beams-military-m65-jacket",
+        "webRef": "turn19view0",
+        "mainProductName": "Beams Military M65 Jacket",
+        "visiblePriceText": "145,000원",
+        "visiblePurchaseButton": "구매하기",
+        "exactDomesticShippingFeeDisplayed": false,
+        "jsonLd": {
+          "type": "Product",
+          "sku": "11618012",
+          "expectedSkuFromBase36ProductId": 11618012,
+          "offerUrl": "/product/6x0ik/beams-military-m65-jacket",
+          "price": 145000,
+          "priceCurrency": "KRW",
+          "availability": "https://schema.org/InStock"
+        },
+        "conditionalPaymentPromotion": "Page also advertises a KakaoPay conditional discount; it was not subtracted from the listing price."
+      }
+    },
+    {
+      "label": "zigzag",
+      "platform": "zigzag",
+      "inputUrl": "https://zigzag.kr/catalog/products/125508991",
+      "checkedAt": "2026-10-17T12:51:04.198279+00:00",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "zigzag",
+          "platformName": "Zigzag",
+          "id": "125508991",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://zigzag.kr/catalog/products/125508991",
+          "key": "zigzag:125508991",
+          "title": "워무드마인 (6color) 슈슈 버뮤다 팬츠 / 코튼 면 밴딩 트레이닝 와이드 버뮤다 팬츠 여름 반바지 바지 버뮤다팬츠 버뮤다바지 여름바지 여름반바지 5부바지 6부바지",
+          "currency": "KRW",
+          "priceKrw": 25600,
+          "shippingKrw": 0,
+          "image": "https://cf.product-image.s.zigzag.kr/original/d/2024/4/26/20509_202404260202090456_96409.jpeg",
+          "warnings": [
+            "按一般顯示售價估算，不含首購券、會員券或信用卡優惠；加價選項與庫存另行確認。"
+          ],
+          "sourcePrice": 25600,
+          "evidence": {
+            "price": "getPdpBaseInfo[125508991].product_price.display_final_price.final_price",
+            "shipping": "shipping_fee：FREE，base_fee=0"
+          },
+          "status": "quoted",
+          "notice": "按一般顯示售價估算，不含首購券、會員券或信用卡優惠；加價選項與庫存另行確認。",
+          "reasonCode": null,
+          "platformFeeKrw": null,
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://zigzag.kr/catalog/products/125508991",
+          "priceSourceUrl": "https://zigzag.kr/catalog/products/125508991",
+          "fetchedAt": "2026-10-17T12:51:03.961Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 25600,
+          "shippingKrw": 0,
+          "subtotalKrw": 25600,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "percent8",
+          "tierRange": "₩25,001～79,999",
+          "feeType": "percent",
+          "servicePercent": 8,
+          "fixedFeeTwd": 0,
+          "serviceLabel": "換算台幣後加 8%",
+          "baseTwd": 673.6842105263158,
+          "serviceTwd": 53.89473684210527,
+          "totalTwd": 728,
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-17T12:51:04.140Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:51:04.140Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      },
+      "officialEvidence": {
+        "sourceUrl": "https://zigzag.kr/p/125508991",
+        "resolvedSourceUrl": "https://zigzag.kr/catalog/products/125508991",
+        "webRef": "turn13view1",
+        "searchRefs": [
+          "turn11search8"
+        ],
+        "mainProductName": "(6color) 슈슈 버뮤다 팬츠",
+        "originalDisplayPriceKrw": 28200,
+        "currentNonCouponPriceKrw": 25600,
+        "couponPriceKrw": 24600,
+        "couponLabel": "쿠폰할인가",
+        "shippingSection": "일반배송 / 무료배송",
+        "shippingKrw": 0,
+        "purchaseButton": "구매하기",
+        "rawHttpCaptureLimitation": "A separate plain HTTP read returned status 200 with an empty body; price/shipping validation relies on the official page rendered by web.open and the independently captured production result. No attempt was made to bypass any restriction."
+      }
+    },
+    {
+      "label": "legacy_product_path",
+      "platform": "poca",
+      "inputUrl": "https://pocamarket.com/search/detail/247060",
+      "checkedAt": "2026-10-17T12:53:03.022Z",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "poca",
+          "platformName": "Pocamarket 小卡市集",
+          "id": "247060",
+          "kind": "product",
+          "market": "global",
+          "url": "https://pocamarket.com/search/detail/247060",
+          "key": "poca:247060",
+          "title": "Pocamarket, NCT SAKUYA WISH STATION RANDOM TRADING CARD SET B K-pop Photocard",
+          "currency": null,
+          "priceKrw": null,
+          "shippingKrw": null,
+          "image": "https://d1sut5kn3lwnf7.cloudfront.net/media/photocard_blur/2024/05/28/2d9ccd338b2b42fdb4915098ca0ee5df.jpg",
+          "warnings": [],
+          "status": "needs_confirmation",
+          "notice": "已辨識國際版，已檢查韓國版對應資訊，但未取得同款商品的公開韓幣售價。韓國站不是把 .com 網域替換就能對應；此筆不使用美金換算價，請由廢廢豬確認韓國採購價。",
+          "reasonCode": "DOMESTIC_PRICE_UNAVAILABLE",
+          "originalUrl": "https://pocamarket.com/search/detail/247060",
+          "priceSourceUrl": null,
+          "domesticResolution": {
+            "policy": "verified-korean-listing-v1",
+            "status": "unavailable",
+            "inputUrl": "https://pocamarket.com/search/detail/247060",
+            "domesticUrl": null,
+            "reason": "NO_VERIFIED_KOREAN_LINK",
+            "fxConversionUsed": false
+          },
+          "koreanSiteUrl": "https://phocamarket.com/",
+          "platformFeeKrw": null,
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "fetchedAt": "2026-10-17T12:53:02.794Z",
+          "fromCache": false
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:53:02.969Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "official_zh_tw_product_path",
+      "platform": "poca",
+      "inputUrl": "https://pocamarket.com/zh-tw/search/detail/247060",
+      "checkedAt": "2026-10-17T12:53:03.340Z",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "poca",
+          "platformName": "Pocamarket 小卡市集",
+          "id": "",
+          "kind": "page",
+          "market": "global",
+          "url": "https://pocamarket.com/zh-tw/search/detail/247060",
+          "key": "poca:https://pocamarket.com/zh-tw/search/detail/247060",
+          "title": "Pocamarket 小卡市集 商品／貼文",
+          "currency": null,
+          "priceKrw": null,
+          "shippingKrw": null,
+          "image": null,
+          "status": "needs_confirmation",
+          "notice": "已辨識 Pocamarket 小卡市集；目前貼的是首頁、賣場或未確認的分享格式，請提供單一商品／貼文網址，或直接到 LINE 詢問。",
+          "reasonCode": "NOT_SINGLE_PRODUCT"
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:53:02.969Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": true
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "naver",
+      "platform": "naver",
+      "inputUrl": "https://smartstore.naver.com/deco-deco/products/13749878148",
+      "checkedAt": "2026-10-17T12:49:35.087Z",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "naver",
+          "platformName": "Naver",
+          "id": "deco-deco:13749878148",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://smartstore.naver.com/deco-deco/products/13749878148",
+          "key": "naver:deco-deco:13749878148",
+          "title": "Naver 商品／貼文",
+          "currency": null,
+          "priceKrw": null,
+          "shippingKrw": null,
+          "image": null,
+          "originalUrl": "https://smartstore.naver.com/deco-deco/products/13749878148",
+          "checkedAt": "2026-10-17T12:49:34.815Z",
+          "status": "needs_confirmation",
+          "notice": "平台目前限制查詢次數，請稍後再試或到 LINE 詢問。",
+          "reasonCode": "UPSTREAM_ERROR"
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:49:35.035Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "naver_brand",
+      "platform": "naver",
+      "inputUrl": "https://brand.naver.com/legokorea/products/10348072356",
+      "checkedAt": "2026-10-17T12:52:32.628Z",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "naver",
+          "platformName": "Naver",
+          "id": "legokorea:10348072356",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://brand.naver.com/legokorea/products/10348072356",
+          "key": "naver:legokorea:10348072356",
+          "title": "Naver 商品／貼文",
+          "currency": null,
+          "priceKrw": null,
+          "shippingKrw": null,
+          "image": null,
+          "originalUrl": "https://brand.naver.com/legokorea/products/10348072356",
+          "checkedAt": "2026-10-17T12:52:32.541Z",
+          "status": "needs_confirmation",
+          "notice": "平台目前限制查詢次數，請稍後再試或到 LINE 詢問。",
+          "reasonCode": "UPSTREAM_ERROR"
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:52:31.807Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": true
+        },
+        "version": "2026-10-17.21"
+      }
+    },
+    {
+      "label": "x",
+      "platform": "x",
+      "inputUrl": "https://x.com/hellolivetv/status/1910256553699262759",
+      "checkedAt": "2026-10-17T12:52:31.856Z",
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "x",
+          "platformName": "X／Twitter 推特",
+          "id": "1910256553699262759",
+          "kind": "post",
+          "market": "kr",
+          "url": "https://x.com/hellolivetv/status/1910256553699262759",
+          "key": "x:1910256553699262759",
+          "title": "X／Twitter 推特 商品／貼文",
+          "currency": null,
+          "priceKrw": null,
+          "shippingKrw": null,
+          "image": null,
+          "originalUrl": "https://x.com/hellolivetv/status/1910256553699262759",
+          "checkedAt": "2026-10-17T12:52:31.634Z",
+          "status": "needs_confirmation",
+          "notice": "這則推文未能公開讀取，可能需要登入、已刪除或受到平台限制。請到 LINE 確認。",
+          "reasonCode": "PUBLIC_POST_UNAVAILABLE"
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:52:31.807Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-17.21"
+      }
+    }
+  ],
+  "findings": {
+    "oliveyoung": {
+      "problem": "Old coupon detection discarded a verified ordinary sale, quoting list price instead.",
+      "provenance": {
+        "sourceUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+        "capturedAt": "2026-10-17T12:50:00Z",
+        "kind": "excerpt of public rendered product reader",
+        "excerptPolicy": "Only the primary product image, heading, price benefit breakdown, and ordinary shipping row are retained.",
+        "crossCheck": {
+          "firstPartyProductId": "A000000260412",
+          "salePrice": 27000,
+          "promotionSalePrice": 17500,
+          "finalPriceWithCoupon": 16900
+        }
+      },
+      "before": {
+        "priceKrw": 27000,
+        "shippingKrw": 0,
+        "totalTwd": 768
+      },
+      "expectedAfter": {
+        "priceKrw": 17500,
+        "shippingKrw": 2500,
+        "couponPriceExcludedKrw": 16900,
+        "exchangeRate": 38,
+        "totalTwd": 577
+      },
+      "shippingEvidence": "일반배송 2,500원 (20,000원 이상 무료배송)"
+    },
+    "zigzag": {
+      "problem": "Verified /p/<id> share route was classified as a page.",
+      "officialRedirectEvidence": {
+        "timestamp": "2026-10-17T12:55:53.071530+00:00",
+        "method": "GET with redirects disabled",
+        "requestUrl": "https://zigzag.kr/p/125508991",
+        "status": 308,
+        "location": "/catalog/products/125508991",
+        "bodyLength": 27
+      },
+      "canonicalUrl": "https://zigzag.kr/catalog/products/125508991"
+    },
+    "poca": {
+      "problem": "Verified zh-tw locale product route was classified as a page.",
+      "productId": "247060",
+      "verifiedUrl": "https://pocamarket.com/zh-tw/search/detail/247060",
+      "publicCurrency": "USD",
+      "publicPrice": 2.5,
+      "koreanPriceVerified": false,
+      "requiredOutcome": "Recognize the same global product; keep quote null without a verified domestic KRW offer."
+    },
+    "x": {
+      "problem": "Official publish.twitter.com/oembed now redirects to publish.x.com/oembed; the existing request stopped at 301.",
+      "sampleUrl": "https://x.com/hellolivetv/status/1910256553699262759",
+      "sampleHasSingleSellingPrice": false,
+      "requiredOutcome": "Follow only verified official same-post redirects; leave this no-price announcement unquoted.",
+      "positivePriceCoverage": "Synthetic labeled-selling-price fixtures, not a live positive-price sample."
+    },
+    "naver": {
+      "productionOutcome": "Both sampled Smart Store / Brand Store URLs returned upstream HTTP 429 and no quote.",
+      "additionalUnresolvedSchemaGap": "The independently accessible Brand Store HTML has window.__PRELOADED_STATE__.simpleProductForDetailPage rather than the JSON-LD consumed by the existing parser. No fallback added in this release.",
+      "offlineStateProductId": "10348072356",
+      "offlineStatePublicPriceKrw": 55900,
+      "offlineStatePriceIsNotProductionQuote": true,
+      "noRestrictionBypass": true
+    }
+  },
+  "fixes": [
+    "oliveyoung-ordinary-sale-before-conditional-coupon",
+    "verified-zigzag-p-product-route",
+    "verified-pocamarket-zh-tw-product-route",
+    "bounded-official-x-oembed-redirects"
+  ],
+  "pricingVersion": "2026-09-15.5",
+  "postDeploymentChecks": [],
+  "localVerification": {
+    "completedAt": "2026-10-17T13:05:13.803126+00:00",
+    "command": "npm test",
+    "passed": 193,
+    "failed": 0,
+    "suites": {
+      "bunjangApi": 28,
+      "bunjangReader": 63,
+      "oliveYoungPrice": 16,
+      "platformRoutes": 12,
+      "xOembed": 39,
+      "domAutomaticInput": 35
+    },
+    "runtimeBuild": "passed",
+    "pricingUnchangedFromV21": true,
+    "savedReleaseSha256": "6501808764f05c25bee5821e9f572cad03e5ba4e7ab6fdf199b55a9e199051b6"
+  },
+  "productionVerified": false
+}

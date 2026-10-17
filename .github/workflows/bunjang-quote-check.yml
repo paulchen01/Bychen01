@@ -1,17 +1,17 @@
-name: Verify Bunjang automatic quotations
+name: Verify platform automatic quotations
 on:
   pull_request:
     paths:
       - 'korea-quote/site/**'
       - 'korea-quote/scripts/release.mjs'
-      - 'korea-quote/releases/site-20261017-21.json'
+      - 'korea-quote/releases/site-*.json'
       - '.github/workflows/bunjang-quote-check.yml'
   push:
     branches: [main]
     paths:
       - 'korea-quote/site/**'
       - 'korea-quote/scripts/release.mjs'
-      - 'korea-quote/releases/site-20261017-21.json'
+      - 'korea-quote/releases/site-*.json'
       - '.github/workflows/bunjang-quote-check.yml'
   workflow_dispatch:
 

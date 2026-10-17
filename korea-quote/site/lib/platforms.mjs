@@ -1,5 +1,5 @@
 /** Supported public page routes. No arbitrary hosts, credentials, IPs or executable URLs. */
-export const APP_VERSION = '2026-10-17.21';
+export const APP_VERSION = '2026-10-17.22';
 export const PLATFORMS = Object.freeze([
   {id:'bunjang',name:'Bunjang 閃電拍賣',native:'번개장터',short:'Bunjang',detail:'公開商品與一般宅配費'},
   {id:'fruits',name:'FruitsFamily',native:'후루츠패밀리',short:'FruitsFamily',detail:'公開標價；未標運費先估商品價'},
@@ -72,7 +72,7 @@ export function normalize(input){
   }else if(platformId==='fruits'){
     u.hostname='fruitsfamily.com';if((m=p.match(/^\/product\/([a-z0-9]{1,12})(?:\/[^/]+)?\/?$/i))){id=m[1].toLowerCase();kind='product';u.pathname=p.replace(/\/$/,'');}
   }else if(platformId==='zigzag'){
-    u.hostname='zigzag.kr';if((m=p.match(/^\/(?:app\/)?catalog\/products\/(\d{1,15})\/?$/))){id=m[1];kind='product';u.pathname='/catalog/products/'+id;}
+    u.hostname='zigzag.kr';if((m=p.match(/^\/(?:(?:app\/)?catalog\/products|p)\/(\d{1,15})\/?$/))){id=m[1];kind='product';u.pathname='/catalog/products/'+id;}
   }else if(platformId==='naver'){
     if(u.hostname==='naver.me'&&/^\/[a-z0-9]+\/?$/i.test(p)){id=p.slice(1).replace(/\/$/,'');kind='short';}
     else if(['smartstore.naver.com','m.smartstore.naver.com','brand.naver.com'].includes(u.hostname)&&(m=p.match(/^\/([^/]+)\/products\/(\d{1,20})\/?$/))){id=m[1]+':'+m[2];kind='product';u.hostname=u.hostname.replace(/^m\./,'');u.pathname='/'+m[1]+'/products/'+m[2];}
@@ -87,7 +87,11 @@ export function normalize(input){
     if(/^\/order\/cart\/?$/.test(p)){kind='cart';id='cart';u.pathname='/order/cart';}
     else if((m=p.match(/^\/(?:products|app\/goods|goods)\/(\d{1,15})\/?$/))){id=m[1];kind='product';u.pathname='/products/'+id;}
   }else if(platformId==='poca'){
-    u.hostname=koreanPoca?'phocamarket.com':'pocamarket.com';if((m=p.match(/^\/search\/detail\/(\d{1,15})\/?$/))){id=m[1];kind='product';u.pathname='/search/detail/'+id;}
+    u.hostname=koreanPoca?'phocamarket.com':'pocamarket.com';
+    // The public global product page now redirects to this observed locale route.
+    if((m=p.match(/^\/(zh-tw\/)?search\/detail\/(\d{1,15})\/?$/))&&(!m[1]||!koreanPoca)){
+      id=m[2];kind='product';u.pathname='/'+(m[1]||'')+'search/detail/'+id;
+    }
   }else if(platformId==='x'){
     if(u.hostname==='t.co'&&/^\/[a-z0-9]+\/?$/i.test(p)){id=p.slice(1).replace(/\/$/,'');kind='short';}
     else if((m=p.match(/^\/(?:([a-z0-9_]{1,20})\/status|i\/(?:web\/)?status)\/(\d{6,22})(?:\/(?:photo|video)\/\d+)?\/?$/i))){id=m[2];kind='post';u.hostname='x.com';u.pathname=m[1]?'/'+m[1]+'/status/'+id:'/i/web/status/'+id;}
