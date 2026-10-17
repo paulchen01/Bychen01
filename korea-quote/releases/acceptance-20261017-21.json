@@ -1,10 +1,10 @@
 {
   "base": "https://korea-quote-0908.vercel.app",
   "version": "2026-10-17.21",
-  "checkedAt": "2026-10-17T12:25:46Z",
-  "acceptanceScope": "local source, regression tests, simulated DOM interactions, and local handler with live public upstream data; production deployment was rejected",
-  "productionVerified": false,
-  "deploymentId": null,
+  "checkedAt": "2026-10-17T12:37:44.988441Z",
+  "acceptanceScope": "local regression tests and simulated DOM interactions, completed production deployment, and live production public API verification; no production-browser interaction acceptance",
+  "productionVerified": true,
+  "deploymentId": "dpl_CU3veVpyxbxybm6Am8SPirkrEsHW",
   "release": {
     "manifest": "site-20261017-21.json",
     "sha256": "b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1",
@@ -185,40 +185,51 @@
     }
   },
   "productionObservation": {
-    "lastVerifiedVersion": "2026-09-15.20",
-    "observedAt": "2026-10-17T11:59:31.334Z",
-    "existingDeploymentId": "dpl_GjjhvtnUKBxSdeCnjybsSFrZdi6j",
+    "lastVerifiedVersion": "2026-10-17.21",
+    "observedAt": "2026-10-17T12:37:44.988441Z",
+    "existingDeploymentId": "dpl_CU3veVpyxbxybm6Am8SPirkrEsHW",
     "healthHttpStatus": 200,
     "rateHttpStatus": 200,
     "quoteForRequestedProduct": {
       "inputUrl": "https://m.bunjang.co.kr/products/386933481",
       "httpStatus": 200,
-      "status": "needs_confirmation",
-      "reasonCode": "PRICE_AMBIGUOUS",
-      "quote": null
+      "status": "estimated",
+      "productId": "386933481",
+      "priceKrw": 64000,
+      "shippingKrw": 0,
+      "exchangeRate": 38,
+      "totalTwd": 1819,
+      "platformFeeKrw": null,
+      "platformFeeExcluded": true,
+      "extractionSource": "bunjang_public_api"
     },
-    "note": "The public production endpoint still reported v20 at this observed checkpoint. No new deployment ID was returned by the rejected v21 release attempt."
+    "note": "The production alias serves v21 and returned a verified current estimate. The unknown platform fee is excluded and disclosed. Earlier v20 observations and rejected deployment attempts remain in history."
   },
   "deployment": {
-    "status": "blocked",
-    "completed": false,
+    "status": "READY",
+    "completed": true,
     "environment": "production",
     "projectName": "korea-quote-0908",
     "projectId": "prj_sabana6oVOczjgxMho8AWlIvCRku",
     "teamId": "team_XfmijK1DUR1v5EUqdAPtT8I6",
     "scope": "bychen999",
-    "newDeploymentId": null,
+    "newDeploymentId": "dpl_CU3veVpyxbxybm6Am8SPirkrEsHW",
     "lastAttempt": {
-      "operation": "create_deployment",
-      "method": "POST",
-      "path": "/v13/deployments",
+      "operation": "Vercel CLI production deploy",
       "target": "production",
-      "submittedFileCount": 40,
-      "submittedReleaseSha256": "b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1",
-      "httpStatus": 403,
-      "error": "forbidden",
-      "requestId": "hnd1:sfo1::78rbl-1792239868365-043553fa39b2",
-      "provenance": "reported actual same-project, same-team production deployment attempt by integrating agent"
+      "status": "READY",
+      "completed": true,
+      "deploymentId": "dpl_CU3veVpyxbxybm6Am8SPirkrEsHW",
+      "projectName": "korea-quote-0908",
+      "projectId": "prj_sabana6oVOczjgxMho8AWlIvCRku",
+      "teamId": "team_XfmijK1DUR1v5EUqdAPtT8I6",
+      "scope": "bychen999",
+      "sourceCommit": "584478b5ff1546d43fd3d278414a8624bcd703c9",
+      "releaseSha256": "b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1",
+      "authentication": "official Vercel CLI login completed before deployment",
+      "sameOriginalProjectAndTeam": true,
+      "credentialsRecorded": false,
+      "provenance": "successful same-project, same-team CLI production deployment reported by integrating agent; production endpoint responses independently recorded in the referenced evidence file"
     },
     "priorAccessChecks": [
       {
@@ -239,11 +250,343 @@
         "note": "The CLI unexpectedly entered device-login waiting despite --non-interactive; it was immediately interrupted. No credential was obtained or inspected, and no login retry was attempted."
       }
     ],
-    "remainingVerification": [
-      "Successful deployment to the existing project and team",
-      "Production alias returns version 2026-10-17.21",
-      "Production quotation endpoint returns a verified current quote for the requested Bunjang product",
-      "Production-browser interaction verification"
-    ]
+    "remainingVerification": [],
+    "attemptHistory": [
+      {
+        "operation": "create_deployment",
+        "method": "POST",
+        "path": "/v13/deployments",
+        "target": "production",
+        "submittedFileCount": 40,
+        "submittedReleaseSha256": "b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1",
+        "httpStatus": 403,
+        "error": "forbidden",
+        "requestId": "hnd1:sfo1::78rbl-1792239868365-043553fa39b2",
+        "provenance": "reported actual same-project, same-team production deployment attempt by integrating agent"
+      }
+    ],
+    "deploymentId": "dpl_CU3veVpyxbxybm6Am8SPirkrEsHW",
+    "sourceCommit": "584478b5ff1546d43fd3d278414a8624bcd703c9",
+    "releaseSha256": "b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1",
+    "productionAlias": "https://korea-quote-0908.vercel.app",
+    "deploymentUrl": "https://korea-quote-0908-htvrgfzan-bychen999.vercel.app",
+    "inspectorUrl": "https://vercel.com/bychen999/korea-quote-0908/CU3veVpyxbxybm6Am8SPirkrEsHW"
+  },
+  "history": [
+    {
+      "recordedAt": "2026-10-17T12:25:46Z",
+      "event": "pre-production acceptance checkpoint; retained after successful deployment",
+      "productionVerified": false,
+      "productionObservation": {
+        "lastVerifiedVersion": "2026-09-15.20",
+        "observedAt": "2026-10-17T11:59:31.334Z",
+        "existingDeploymentId": "dpl_GjjhvtnUKBxSdeCnjybsSFrZdi6j",
+        "healthHttpStatus": 200,
+        "rateHttpStatus": 200,
+        "quoteForRequestedProduct": {
+          "inputUrl": "https://m.bunjang.co.kr/products/386933481",
+          "httpStatus": 200,
+          "status": "needs_confirmation",
+          "reasonCode": "PRICE_AMBIGUOUS",
+          "quote": null
+        },
+        "note": "The public production endpoint still reported v20 at this observed checkpoint. No new deployment ID was returned by the rejected v21 release attempt."
+      },
+      "deployment": {
+        "status": "blocked",
+        "completed": false,
+        "environment": "production",
+        "projectName": "korea-quote-0908",
+        "projectId": "prj_sabana6oVOczjgxMho8AWlIvCRku",
+        "teamId": "team_XfmijK1DUR1v5EUqdAPtT8I6",
+        "scope": "bychen999",
+        "newDeploymentId": null,
+        "lastAttempt": {
+          "operation": "create_deployment",
+          "method": "POST",
+          "path": "/v13/deployments",
+          "target": "production",
+          "submittedFileCount": 40,
+          "submittedReleaseSha256": "b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1",
+          "httpStatus": 403,
+          "error": "forbidden",
+          "requestId": "hnd1:sfo1::78rbl-1792239868365-043553fa39b2",
+          "provenance": "reported actual same-project, same-team production deployment attempt by integrating agent"
+        },
+        "priorAccessChecks": [
+          {
+            "operation": "get_deployment",
+            "deploymentId": "dpl_GjjhvtnUKBxSdeCnjybsSFrZdi6j",
+            "teamId": "team_XfmijK1DUR1v5EUqdAPtT8I6",
+            "httpStatus": 403
+          },
+          {
+            "operation": "Vercel CLI project inspect",
+            "cliVersion": "64.5.0",
+            "projectName": "korea-quote-0908",
+            "teamId": "team_XfmijK1DUR1v5EUqdAPtT8I6",
+            "nonInteractiveRequested": true,
+            "result": "No existing credentials found",
+            "loginCompleted": false,
+            "processExitCode": 130,
+            "note": "The CLI unexpectedly entered device-login waiting despite --non-interactive; it was immediately interrupted. No credential was obtained or inspected, and no login retry was attempted."
+          }
+        ],
+        "remainingVerification": [
+          "Successful deployment to the existing project and team",
+          "Production alias returns version 2026-10-17.21",
+          "Production quotation endpoint returns a verified current quote for the requested Bunjang product",
+          "Production-browser interaction verification"
+        ]
+      }
+    }
+  ],
+  "updatedAt": "2026-10-17T12:40:04Z",
+  "productionVerificationScope": "READY deployment plus successful public production health, rate, and quotation endpoint verification",
+  "sourceCommit": "584478b5ff1546d43fd3d278414a8624bcd703c9",
+  "browserInteractionVerified": false,
+  "browserVerification": {
+    "status": "not_performed",
+    "browserInteractionVerified": false,
+    "productionLayoutVerified": false,
+    "reason": "The connected Browser plugin had no originating browser context.",
+    "cloudBrowserFallbackUsed": false,
+    "note": "The 35 passing DOM tests and successful production API checks do not constitute production-browser interaction or layout acceptance."
+  },
+  "productionApiVerification": {
+    "productionRequest": true,
+    "base": "https://korea-quote-0908.vercel.app",
+    "version": "2026-10-17.21",
+    "deploymentId": "dpl_CU3veVpyxbxybm6Am8SPirkrEsHW",
+    "checkedAt": "2026-10-17T12:37:44.988441Z",
+    "evidenceSource": "quote-site/evidence/production-v21-20261017.json",
+    "evidenceSha256": "b7ee5803b5c2f307751b0cf1f24965b6bd22f618e9dcbc41b437b2fdb8d1e5ce",
+    "allEndpointsHttp200": true,
+    "responses": {
+      "health": {
+        "url": "https://korea-quote-0908.vercel.app/api/health",
+        "httpStatus": 200,
+        "response": {
+          "ok": true,
+          "version": "2026-10-17.21",
+          "pricingVersion": "2026-09-15.5",
+          "service": "fatfatpig-korea-quote",
+          "scope": "已知商品價即粗估；有運費就計入，未標運費先不計入",
+          "unknownShippingPolicy": "estimate_product_only",
+          "domesticPricePolicy": "verified-korean-listing-v1",
+          "internationalResolution": "bunjang_id_or_verified_korean_alternate",
+          "fxConversionUsed": false,
+          "platformFeePolicy": "separate-pass-through-unknown-excluded",
+          "exchangeRate": 38,
+          "rate": {
+            "exchangeRate": 38,
+            "checkedAt": "2026-10-17T12:37:44.681Z",
+            "source": "google_sheets",
+            "cell": "B2",
+            "fromCache": false
+          },
+          "ratePolicy": "shared-google-sheet-b2",
+          "feeBasis": "subtotalKrw",
+          "tiers": [
+            {
+              "id": "fixed50",
+              "min": 1,
+              "max": 25000,
+              "type": "fixed",
+              "percent": null,
+              "fixedTwd": 50,
+              "range": "₩25,000 以下（含）",
+              "label": "固定 NT$50"
+            },
+            {
+              "id": "percent8",
+              "min": 25001,
+              "max": 79999,
+              "type": "percent",
+              "percent": 8,
+              "fixedTwd": 0,
+              "range": "₩25,001～79,999",
+              "label": "換算台幣後加 8%"
+            },
+            {
+              "id": "percent5",
+              "min": 80000,
+              "max": 149999,
+              "type": "percent",
+              "percent": 5,
+              "fixedTwd": 0,
+              "range": "₩80,000～149,999",
+              "label": "換算台幣後加 5%"
+            },
+            {
+              "id": "percent3",
+              "min": 150000,
+              "max": 199999,
+              "type": "percent",
+              "percent": 3,
+              "fixedTwd": 0,
+              "range": "₩150,000～199,999",
+              "label": "換算台幣後加 3%"
+            },
+            {
+              "id": "free",
+              "min": 200000,
+              "max": null,
+              "type": "none",
+              "percent": 0,
+              "fixedTwd": 0,
+              "range": "₩200,000 以上（含）",
+              "label": "免代購費"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "bunjang",
+              "name": "Bunjang 閃電拍賣",
+              "native": "번개장터",
+              "short": "Bunjang",
+              "detail": "公開商品與一般宅配費"
+            },
+            {
+              "id": "fruits",
+              "name": "FruitsFamily",
+              "native": "후루츠패밀리",
+              "short": "FruitsFamily",
+              "detail": "公開標價；未標運費先估商品價"
+            },
+            {
+              "id": "zigzag",
+              "name": "Zigzag",
+              "native": "지그재그",
+              "short": "Zigzag",
+              "detail": "一般售價；不擅用首購優惠"
+            },
+            {
+              "id": "naver",
+              "name": "Naver",
+              "native": "네이버",
+              "short": "Naver",
+              "detail": "商店商品；部落格／社團需確認"
+            },
+            {
+              "id": "poca",
+              "name": "Pocamarket 小卡市集",
+              "native": "포카마켓",
+              "short": "Pocamarket",
+              "detail": "先確認幣別；外幣不套韓幣公式"
+            },
+            {
+              "id": "oliveyoung",
+              "name": "Olive Young",
+              "native": "올리브영",
+              "short": "Olive Young",
+              "detail": "韓國商品售價；以所選規格確認"
+            },
+            {
+              "id": "musinsa",
+              "name": "Musinsa",
+              "native": "무신사",
+              "short": "Musinsa",
+              "detail": "商品頁粗估；購物車請提供個別商品"
+            },
+            {
+              "id": "x",
+              "name": "X／Twitter 推特",
+              "native": "트위터",
+              "short": "X／Twitter",
+              "detail": "公開貼文解析；多款／圖片價需確認"
+            }
+          ]
+        },
+        "checkedAt": "2026-10-17T12:37:44.738377+00:00"
+      },
+      "rate": {
+        "url": "https://korea-quote-0908.vercel.app/api/rate",
+        "httpStatus": 200,
+        "response": {
+          "ok": true,
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-17T12:37:44.670Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false,
+          "version": "2026-10-17.21"
+        },
+        "checkedAt": "2026-10-17T12:37:44.716987+00:00"
+      },
+      "quote": {
+        "url": "https://korea-quote-0908.vercel.app/api/quote?url=https%3A%2F%2Fm.bunjang.co.kr%2Fproducts%2F386933481",
+        "httpStatus": 200,
+        "response": {
+          "ok": true,
+          "status": "estimated",
+          "product": {
+            "platformId": "bunjang",
+            "platformName": "Bunjang 閃電拍賣",
+            "id": "386933481",
+            "kind": "product",
+            "market": "kr",
+            "url": "https://m.bunjang.co.kr/products/386933481",
+            "key": "bunjang:386933481",
+            "title": "비투비) 삐프렌즈 인형 일괄",
+            "currency": "KRW",
+            "priceKrw": 64000,
+            "shippingKrw": 0,
+            "shippingMethod": "韓國一般宅配",
+            "image": "https://media.bunjang.co.kr/product/386933481_1_1770135718_w320.jpg",
+            "status": "quoted",
+            "reasonCode": null,
+            "notice": "按主商品標價及韓國一般宅配估算；款式、數量、平台費與庫存請到 LINE 確認。",
+            "extractionSource": "bunjang_public_api",
+            "sourceUpdatedAt": "2026-10-15T06:10:58.671288Z",
+            "evidence": {
+              "productId": "386933481",
+              "price": "data.product.price = 64000",
+              "shipping": "trade.freeShipping = true",
+              "saleStatus": "SELLING"
+            },
+            "apiPath": "/api/pms/v1/products/{id}/detail/web",
+            "dataSourceUrl": "https://api.bunjang.co.kr/api/pms/v1/products/386933481/detail/web",
+            "platformFeeKrw": null,
+            "platformFeeStatus": "unknown",
+            "platformFeeNotice": "未標示，本次未計入。",
+            "originalUrl": "https://m.bunjang.co.kr/products/386933481",
+            "priceSourceUrl": "https://m.bunjang.co.kr/products/386933481",
+            "fetchedAt": "2026-10-17T12:37:44.780Z",
+            "fromCache": false
+          },
+          "quote": {
+            "priceKrw": 64000,
+            "shippingKrw": 0,
+            "subtotalKrw": 64000,
+            "exchangeRate": 38,
+            "pricingVersion": "2026-09-15.5",
+            "feeBasis": "subtotalKrw",
+            "tierId": "percent8",
+            "tierRange": "₩25,001～79,999",
+            "feeType": "percent",
+            "servicePercent": 8,
+            "fixedFeeTwd": 0,
+            "serviceLabel": "換算台幣後加 8%",
+            "baseTwd": 1684.2105263157894,
+            "serviceTwd": 134.73684210526315,
+            "totalTwd": 1819,
+            "platformFeeKrw": null,
+            "platformFeeExcluded": true,
+            "platformFeeTwd": null,
+            "rateCheckedAt": "2026-10-17T12:37:44.939Z"
+          },
+          "rate": {
+            "exchangeRate": 38,
+            "checkedAt": "2026-10-17T12:37:44.939Z",
+            "source": "google_sheets",
+            "cell": "B2",
+            "fromCache": false
+          },
+          "version": "2026-10-17.21"
+        },
+        "checkedAt": "2026-10-17T12:37:44.988441+00:00"
+      }
+    }
   }
 }
