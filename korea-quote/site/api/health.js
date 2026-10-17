@@ -1,0 +1,4 @@
+import {APP_VERSION,PLATFORMS} from '../lib/platforms.mjs';
+import {FEE_BASIS,FEE_TIERS,PRICING_VERSION} from '../lib/pricing.mjs';
+import {getRate} from '../lib/sheet-rate.mjs';
+export default async function handler(req,res){res.setHeader('Cache-Control','no-store');let rate;try{rate=await getRate();}catch(e){rate={exchangeRate:null,error:e.message,source:'google_sheets'};}return res.status(200).json({ok:true,version:APP_VERSION,pricingVersion:PRICING_VERSION,service:'fatfatpig-korea-quote',scope:'已知商品價即粗估；有運費就計入，未標運費先不計入',unknownShippingPolicy:'estimate_product_only',domesticPricePolicy:'verified-korean-listing-v1',internationalResolution:'bunjang_id_or_verified_korean_alternate',fxConversionUsed:false,platformFeePolicy:'separate-pass-through-unknown-excluded',exchangeRate:rate.exchangeRate,rate,ratePolicy:'shared-google-sheet-b2',feeBasis:FEE_BASIS,tiers:FEE_TIERS,platforms:PLATFORMS});}

@@ -1,0 +1,20 @@
+# 廢廢豬韓國代購
+
+廢廢豬（fat fat pig）提供台灣使用者韓國商品代購、代買、代下單與初步台幣估價。
+
+- Homepage: https://korea-quote-0908.vercel.app/
+- Bunjang / 번개장터: https://korea-quote-0908.vercel.app/bunjang/
+- Naver SmartStore: https://korea-quote-0908.vercel.app/naver-smartstore/
+- Musinsa / 무신사: https://korea-quote-0908.vercel.app/musinsa/
+- FruitsFamily / 후루츠패밀리: https://korea-quote-0908.vercel.app/fruitsfamily/
+- Olive Young / 올리브영: https://korea-quote-0908.vercel.app/olive-young/
+- LINE: @fatfatpig_kr
+- Official Shopee profile: https://shopee.tw/chenby
+
+Pricing: known product KRW and Korean domestic shipping are converted using the site's current merchant-maintained quote rate; proxy fee tiers apply to the product + known domestic shipping subtotal. Known Korean platform fees are converted separately. Unknown shipping/platform fees are clearly marked and not guessed. Final purchase price requires human confirmation.
+
+## More guides
+- https://korea-quote-0908.vercel.app/zigzag/ — Zigzag 지그재그 韓國女裝代購估價
+- https://korea-quote-0908.vercel.app/korea-exchange-rate/ — 韓國代購匯率與換算公式
+- https://korea-quote-0908.vercel.app/korea-proxy-order/ — 韓國代下單服務與算法
+- https://korea-quote-0908.vercel.app/bunjang-guide/ — Bunjang 번개장터 新手教學與注意事項

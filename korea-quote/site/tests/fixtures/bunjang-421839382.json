@@ -1,0 +1,59 @@
+{
+  "_source": {
+    "url": "https://api.bunjang.co.kr/api/pms/v1/products/421839382/detail/web",
+    "capturedAt": "2026-10-17T12:08:32.523787+00:00",
+    "note": "Selected fields from a public live response; irrelevant shop/profile metadata omitted."
+  },
+  "data": {
+    "product": {
+      "pid": 421839382,
+      "name": "비투비 인형(가격수정!!)",
+      "description": "귀여운 BTOB 인형 판매합니당! 상태 깔끔하고 모두 정품이에요!!✌🏻\n개별 구매 가능\n👉🏻묶음 구매 시 덤 더 많이 드리고 가격 조정 가능합니당!!!😋\n(상점소개 필독!!🦀)\n\n교환,환불 🙅\n⭐️반택만 가능합니당⭐️\n덤 왕창 넣어드릴게요🙈 \n\n편하게 채팅 주세요🐷🚪\n\n｡･:*:･ﾟ★,｡･:*:･ﾟ☆ ｡･:*:･ﾟ★,｡･:*:･ﾟ☆\n\n🐱광냥이 - 13000\n🐯범식이 - 13000\n     (부적,스티커 포함)\n🦊여우뎨 - 13000",
+      "price": 13000,
+      "originPrice": 13000,
+      "qty": 1,
+      "saleStatus": "SELLING",
+      "isHidden": false,
+      "imageUrl": "https://media.bunjang.co.kr/product/421839382_{cnt}_1786662671_w{res}.jpg",
+      "imageCount": 10,
+      "trade": {
+        "freeShipping": false,
+        "shippingSpecs": {
+          "DEFAULT": {
+            "fee": 3000
+          },
+          "GS_HALF_PRICE": {
+            "fee": 1800
+          },
+          "CU_THRIFTY": {
+            "fee": 1800
+          }
+        },
+        "inPerson": false
+      },
+      "trades": [
+        {
+          "title": "배송비",
+          "tooltip": "일반 택배는 원하는 장소로 배송받고,\n반값택배는 편의점에서 배송받아요.",
+          "contents": [
+            "일반 3,000원",
+            "GS • CU반값 1,800원"
+          ],
+          "separator": "  |  "
+        }
+      ],
+      "updatedAt": "2026-10-17T04:28:46.220072Z"
+    },
+    "bunpay": {
+      "enabled": true,
+      "shipping": true,
+      "inPerson": true
+    },
+    "shopProducts": [
+      {
+        "pid": 345648388,
+        "price": 3000
+      }
+    ]
+  }
+}

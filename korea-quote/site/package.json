@@ -1,0 +1,17 @@
+{
+  "name": "korea-quote-0908",
+  "version": "1.0.21",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "test": "node tests/run-tests.mjs",
+    "build": "node build.mjs",
+    "test:core": "node tests/bunjang-api.test.mjs && node tests/bunjang-reader.test.mjs",
+    "test:ui": "node --experimental-vm-modules tests/auto-quote.test.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3"
+  }
+}
