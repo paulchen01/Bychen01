@@ -267,8 +267,8 @@ test('the existing Naver short-link behavior still accepts its resolved product'
 
 test('the page advertises automatic lookup and references the new release assets',()=>{
   assert.ok(HTML.includes('貼上完整商品連結，即可自動查價。'));
-  assert.ok(HTML.includes('/app.js?v=20261017-21'));
-  assert.ok(HTML.includes('/smartstore-beta.js?v=20261017-21'));
-  assert.ok(HTML.includes('/style.css?v=20261017-21'));
-  assert.ok(HTML.includes('<span id="version">2026-10-17.21</span>'));
+  assert.ok(HTML.includes('/app.js?v=20261017-22'));
+  assert.ok(HTML.includes('/smartstore-beta.js?v=20261017-22'));
+  assert.ok(HTML.includes('/style.css?v=20261017-22'));
+  assert.ok(HTML.includes('<span id="version">2026-10-17.22</span>'));
 });

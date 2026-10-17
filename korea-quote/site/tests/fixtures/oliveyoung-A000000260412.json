@@ -1,0 +1,22 @@
+{
+  "provenance": {
+    "sourceUrl": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+    "capturedAt": "2026-10-17T12:50:00Z",
+    "kind": "excerpt of public rendered product reader",
+    "excerptPolicy": "Only the primary product image, heading, price benefit breakdown, and ordinary shipping row are retained.",
+    "crossCheck": {
+      "firstPartyProductId": "A000000260412",
+      "salePrice": 27000,
+      "promotionSalePrice": 17500,
+      "finalPriceWithCoupon": 16900
+    }
+  },
+  "reader": {
+    "code": 200,
+    "data": {
+      "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412",
+      "title": "[10월 올영픽/초경량] 라운드랩 자작나무 수분 선세럼 50ml 기획(+클렌저 20ml) | 올리브영",
+      "content": "![Image 4: 상품명](https://image.oliveyoung.co.kr/cfimages/cf-goods/uploads/images/thumbnails/10/0000/0026/A00000026041212ko.jpg?l=ko&QT=85&SF=webp&sharpen=1x0.5)\n\n### [10월 올영픽/초경량] 라운드랩 자작나무 수분 선세럼 50ml 기획(+클렌저 20ml)\n\n~~27,000 원~~_37%_ 16,900 원 정보 보기\n\n**혜택정보**\n*   판매가 27,000원\n*   세일 (26.10.01 ~ 26.11.28)-9,500원\n*   쿠폰 (26.10.06 ~ 26.10.31)-600원\n*   최적가 16,900원\n\n팝업 닫기\n\n* 일반배송 2,500원 (20,000원 이상 무료배송)\n\n상품설명\n"
+    }
+  }
+}

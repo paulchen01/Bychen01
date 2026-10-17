@@ -1,0 +1,11 @@
+{
+  "_fixture": "Synthetic regression only. This is not a real published sale or live quotation.",
+  "url": "https://x.com/quote_fixture/status/1234567890123456789",
+  "author_name": "Synthetic quote fixture",
+  "author_url": "https://x.com/quote_fixture",
+  "html": "<blockquote><p>Synthetic fixture: 인형 1개 판매<br>판매가: 10,000원<br>배송비: 3,000원</p></blockquote>",
+  "type": "rich",
+  "provider_name": "X",
+  "provider_url": "https://x.com",
+  "version": "1.0"
+}

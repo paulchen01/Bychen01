@@ -11,6 +11,25 @@ function reader(raw,t){
  if(d.url&&normalize(d.url).key!==t.key)throw new PlatformError('PRODUCT_MISMATCH','讀取結果不是同一商品。');
  return {title:decode(d.title||''),text:String(d.content||'')};
 }
+/** Keep a public sale discount even when the displayed best price also includes a coupon. */
+function oliveYoungPublicPrice(region,displayMatch,listPrice){
+ const displayedPrice=amount(displayMatch?.[1]),originalPrice=amount(listPrice?.[1]);
+ const conditional=/쿠폰|회원|첫\s*구매|첫구매|카드/.test(region);
+ const saleLines=region.split('\n').map(line=>line.replace(/^\s*[-*]\s*/,'').trim()).filter(line=>/^세일(?:\s|\()/.test(line));
+ if(saleLines.length){
+  // The benefit breakdown must provide one exact won reduction from the same product's list price.
+  // Only a plain sale or its date range is a public discount; membership/payment labels are not.
+  const sales=saleLines.map(line=>line.match(/^세일(?:\s*\(\d{2,4}\.\d{1,2}\.\d{1,2}\s*~\s*\d{2,4}\.\d{1,2}\.\d{1,2}\))?\s*[-−]\s*([\d,]+)\s*원\s*$/));
+  if(!originalPrice||sales.some(sale=>!sale)||new Set(sales.map(sale=>sale[1].replace(/,/g,''))).size!==1)
+   throw new PlatformError('PRICE_AMBIGUOUS','商品的一般折扣明細無法核對，請到 LINE 確認。');
+  const reduction=amount(sales[0][1]),price=originalPrice-reduction;
+  if(!reduction||price<=0||!displayedPrice||displayedPrice>price||(!conditional&&displayedPrice!==price))
+   throw new PlatformError('PRICE_CONFLICT','商品售價與折扣明細不一致，請到 LINE 確認。');
+  return {price,evidence:listPrice[0]+'；'+saleLines[0],couponExcluded:conditional};
+ }
+ const chosen=conditional?listPrice:displayMatch||listPrice;
+ return {price:amount(chosen?.[1]),evidence:chosen?.[0],couponExcluded:conditional};
+}
 export function parseOliveYoungReader(raw,input){
  const t=normalize(input);if(t.kind!=='product'||t.platformId!=='oliveyoung')return confirmation(t,'請貼 Olive Young 個別商品連結。','NOT_SINGLE_PRODUCT');
  const {title,text}=reader(raw,t);let p=base(t);
@@ -23,17 +42,16 @@ export function parseOliveYoungReader(raw,input){
  const priceRegion=main.split(/\n(?:팝업 닫기|평점|리뷰|옵션뷰|구매수량)/)[0];
  const displayed=priceRegion.split('\n').map(s=>s.replace(/~~[^~]*~~/g,'').replace(/_\d+(?:\.\d+)?%_/g,'').trim()).find(s=>/^\d[\d,]*\s*원(?:\s|$)/.test(s));
  const displayMatch=displayed?.match(/^([\d,]+)\s*원/),listPrice=priceRegion.match(/판매가\s+([\d,]+)\s*원/);
- const conditional=/쿠폰|회원|첫\s*구매|첫구매|카드/.test(priceRegion);
- const chosen=conditional?listPrice:displayMatch||listPrice;
- p={...p,title:name,image,currency:'KRW',priceKrw:amount(chosen?.[1]),sourcePrice:amount(chosen?.[1])};
+ const chosen=oliveYoungPublicPrice(priceRegion,displayMatch,listPrice);
+ p={...p,title:name,image,currency:'KRW',priceKrw:chosen.price,sourcePrice:chosen.price,couponExcluded:chosen.couponExcluded};
  if(!p.priceKrw)return confirmation(p,'已辨識商品，但沒有可核對的一般韓幣售價。','PRICE_UNKNOWN',p);
  const ship=main.match(/일반\s*배송\s*([\d,]+)\s*원(?:\s*\(\s*([\d,]+)\s*원\s*이상\s*무료배송\s*\))?/);
  if(ship){const fee=Number(ship[1].replace(/,/g,''));const threshold=ship[2]?amount(ship[2]):null;p.shippingKrw=threshold&&p.priceKrw>=threshold?0:fee;}
  else if(/일반\s*배송\s*무료/.test(main))p.shippingKrw=0;
  Object.assign(p,parsePlatformFee(main));
  p.priceIsStarting=/원\s*~/.test(displayed||'');
- p.warnings=[p.priceIsStarting?'頁面為不同組合／規格起價，先按顯示起價粗估；選定規格後確認正式報價。':'以本商品公開售價粗估，款式、庫存與實際優惠以真人確認為準。'];
- p.evidence={price:chosen?.[0],shipping:ship?.[0]||'未標示一般配送費',productId:t.id};
+ p.warnings=[p.priceIsStarting?'頁面為不同組合／規格起價，先按顯示起價粗估；選定規格後確認正式報價。':'以本商品公開售價粗估，款式、庫存與實際優惠以真人確認為準。',...(chosen.couponExcluded?['領券、會員及指定付款優惠需另行確認。']:[])];
+ p.evidence={price:chosen.evidence,shipping:ship?.[0]||'未標示一般配送費',productId:t.id};
  return ready(p);
 }
 export function parseMusinsa(html,input){
