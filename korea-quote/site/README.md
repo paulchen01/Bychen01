@@ -10,7 +10,7 @@
 - X 的 oEmbed 讀取可跟隨 `publish.twitter.com` 到 `publish.x.com` 的官方同貼文轉址。逐跳驗證、最多三次轉址；登入、限流、不同貼文或未支援的目的地會停止。
 - Naver 兩個正式商品樣本均受平台 HTTP 429 限制。另確認新版主商品 state 與既有 JSON-LD parser 的格式差異，本輪未修改此部分，不能標示為自動報價已通過。
 
-完整抽測來源、正式 API 回應與限制保存在 [平台查核紀錄](../releases/platform-audit-20261017-22.md) 與同名 JSON。目前 v22 尚待正式發布驗證。
+完整抽測來源、正式 API 回應與限制保存在 [平台查核紀錄](../releases/platform-audit-20261017-22.md) 與同名 JSON。v22 已發布至原正式站，臺灣時間 22:17 完成正式 API 與頁面版本驗證；各平台結果及單次 Olive Young 重試均保留於紀錄。
 
 ## v21 Bunjang 與自動查價修正
 
@@ -52,6 +52,15 @@ npm run build
 
 從專案根目錄執行 `node korea-quote/scripts/release.mjs --check`，可核對已保存的 v22 發布檔是否與目前來源完全一致。產生新發布快照則執行相同指令但省略 `--check`。發布前需確認正確團隊、專案與已測試 commit；發布後應實測 `/api/health` 的版本與使用者商品 `/api/quote` 的內容。
 
-**2026-10-17 正式發布完成：**使用者完成 Vercel 官方登入授權後，已透過 CLI 發布至原 `bychen999 / korea-quote-0908` 專案，正式網址維持 `https://korea-quote-0908.vercel.app`。部署 ID 為 `dpl_CU3veVpyxbxybm6Am8SPirkrEsHW`，發布來源 commit 為 `584478b5ff1546d43fd3d278414a8624bcd703c9`，發布檔 SHA-256 維持 `b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1`。
+**2026-10-17 v21 發布紀錄：**使用者完成 Vercel 官方登入授權後，已透過 CLI 發布至原 `bychen999 / korea-quote-0908` 專案，正式網址維持 `https://korea-quote-0908.vercel.app`。部署 ID 為 `dpl_CU3veVpyxbxybm6Am8SPirkrEsHW`，發布來源 commit 為 `584478b5ff1546d43fd3d278414a8624bcd703c9`，發布檔 SHA-256 維持 `b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1`。
 
 臺灣時間 20:37 的正式站驗證：`/api/health`、`/api/rate`、`/api/quote` 均回 200 與 v21；指定商品實際回 ₩64,000、韓國免運、共享匯率 38、估價 NT$1,819。完整回應與先前部署權限拒絕紀錄保留在 `../releases/acceptance-20261017-21.json`。Browser plugin 缺少原始瀏覽器連線環境，因此本次未執行正式瀏覽器互動驗收；已完成的 35 項 DOM 互動測試、126 項總回歸及正式 API 驗證分別記錄，避免混稱。
+
+
+### v22 正式發布驗證
+
+部署 ID：`dpl_4YGFHTSsyvpHqxbr1onEW4Gx9tiw`。來源 commit：`67d68cc55b802b157b9ed0e35dc7d1b50b965bc7`。發布檔 SHA-256：`6501808764f05c25bee5821e9f572cad03e5ba4e7ab6fdf199b55a9e199051b6`。原正式網址不變。
+
+上線後 11 次正式報價請求涵蓋全部 8 個平台（含一次針對資料不完整的 Olive Young 重試）。Olive Young 修正樣本為 ₩17,500＋境內運費 ₩2,500 → NT$577；一般商品重試後為 ₩23,500、境內免運 → NT$669。Zigzag `/p/` 成功報價；Pocamarket 語系路徑正確識別商品但缺韓國原價，X 已讀取公開貼文但未發現明確售價，Naver 兩筆仍受上游限流。這些待確認結果未計作自動報價成功。
+
+193 項本機測試與 GitHub CI 均通過；正式首頁、`/api/health`、`/api/rate` 與各報價回應皆驗證為 v22。原始回應及全部限制見 `../releases/platform-audit-20261017-22.json`。

@@ -2,7 +2,7 @@
 
 日期：2026-10-17（臺灣時間）。正式站：https://korea-quote-0908.vercel.app
 
-狀態：v21 初輪正式抽測完成；v22 修正已通過本機 193 項測試，待正式發布後複測。
+狀態：**v22 已於原正式站上線；臺灣時間 22:17 完成正式複測**。本機 193 項測試與 GitHub CI 均通過。
 
 ## 實際抽測結果
 
@@ -15,7 +15,7 @@
 | Zigzag | [125508991](https://zigzag.kr/catalog/products/125508991) | ₩25,600、韓國免運，NT$728 | 未使用 ₩24,600 券後價；修正已驗證的 `/p/` 分享網址 |
 | Musinsa | [4838210](https://www.musinsa.com/products/4838210) | ₩23,700，NT$674 | 韓國運費未知；另一首購活動商品回 `UNAVAILABLE_PRODUCT`、沒有報價 |
 | Olive Young | [A000000165177](https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000165177) | ₩23,500、韓國免運，NT$669 | 一般商品正常 |
-| Olive Young | [A000000260412](https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412) | 舊版誤用原價，NT$768 | 已修正一般折扣；預期為 ₩17,500＋境內運費 ₩2,500 → NT$577，正式待複測 |
+| Olive Young | [A000000260412](https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000260412) | 舊版誤用原價，NT$768 | 已修正一般折扣；正式結果為 ₩17,500＋境內運費 ₩2,500 → NT$577，正式複測已確認 |
 | Naver Smart Store／Brand Store | [Smart Store](https://smartstore.naver.com/deco-deco/products/13749878148)、[LEGO Brand Store](https://brand.naver.com/legokorea/products/10348072356) | 兩筆皆沒有報價 | 正式站取得上游 HTTP 429；不能列為自動查價成功 |
 | Pocamarket | [247060](https://pocamarket.com/zh-tw/search/detail/247060) | 兩種網址皆沒有報價 | 國際版公開價 USD 2.50，沒有可驗證的韓國原價；修正 `zh-tw` 路徑辨識後仍須確認 |
 | X／Twitter | [hellolive 公開售票公告](https://x.com/hellolivetv/status/1910256553699262759) | 官方 oEmbed 301 造成讀取失敗 | 已修正官方轉址；此貼文本身沒有單一明確韓幣售價，應維持需確認 |
@@ -24,7 +24,7 @@
 
 ## 本次確認並修正的問題
 
-Olive Young 的實際價格明細為原价 ₩27,000、一般折扣 ₩9,500、優惠券 ₩600。公開一般售價為 ₩17,500；₩16,900 是需要領券的最優惠價。一般配送費為 ₩2,500，滿 ₩20,000 免運，因此這筆要加運費。新的 parser 僅採用可核對的一般折扣；會員、首購、指定付款或格式無法核對的折扣不會被當成通用售價。真實 reader 摘要另以官方主商品 state 的 `promotionSalePrice` 核對。
+Olive Young 的實際價格明細為原價 ₩27,000、一般折扣 ₩9,500、優惠券 ₩600。公開一般售價為 ₩17,500；₩16,900 是需要領券的最優惠價。一般配送費為 ₩2,500，滿 ₩20,000 免運，因此這筆要加運費。新的 parser 僅採用可核對的一般折扣；會員、首購、指定付款或格式無法核對的折扣不會被當成通用售價。真實 reader 摘要另以官方主商品 state 的 `promotionSalePrice` 核對。
 
 Zigzag 的 `/p/125508991` 已直接觀測到 HTTP 308、`Location: /catalog/products/125508991`。Pocamarket 舊商品網址已觀測到轉至 `/zh-tw/search/detail/247060`；新路徑保留語系與 global 商品識別，避免正常化造成循環或把全球站誤認為韓國站。
 
@@ -43,3 +43,25 @@ Pocamarket 國際商品的美元金額與網站顯示的台幣近似值都不能
 - v22 發布快照以既有 v21 的 SHA-256 為基準，只允許本輪必要檔案變動。
 - 正式 API 抽測與 DOM 測試分開記錄。Browser plugin 缺少原始瀏覽器連線環境，因此未宣稱完成正式瀏覽器互動驗收。
 - 完整正式回應、時間戳、預期修正與後續發布驗證欄位見 [platform-audit-20261017-22.json](platform-audit-20261017-22.json)。
+
+
+## v22 上線後正式複測
+
+正式版：2026-10-17.22。時間：2026-10-17 22:16–22:17（臺灣時間）。共 11 次正式報價請求，包含一次 Olive Young 重試；與初輪合計 23 次。
+
+| 平台 | v22 實際結果 | 必須保留的說明 |
+| --- | --- | --- |
+| Bunjang | NT$1,819 | 原使用者商品，韓國免運 |
+| FruitsFamily | NT$4,007 | 未含未知韓國運費 |
+| Zigzag | `/p/125508991` → NT$728 | 一般價 ₩25,600、韓國免運 |
+| Musinsa | NT$674 | 未含未知韓國運費 |
+| Olive Young | 折扣商品 NT$577；一般商品 NT$669 | 一般商品首次回 `PRODUCT_NOT_FOUND`，單次重試後恢復；首筆失敗的 reader 原文未取得，不能確定當時缺哪個欄位 |
+| Naver | 兩筆 `UPSTREAM_ERROR`、沒有報價 | 皆為上游限流訊息，仍無法自動查價 |
+| Pocamarket | 商品 ID 正確，`DOMESTIC_PRICE_UNAVAILABLE` | 沒有韓國原價，沒有報價 |
+| X／Twitter | `SOCIAL_POST_CONFIRMATION` | 官方轉址已通；真實貼文無明確售價，沒有報價 |
+
+所有正式 API 回應皆 HTTP 200，且均為 v22；HTTP 200 只表示 API 成功回應，表格中的「沒有報價」仍屬需人工確認。首頁與靜態檔版本標記、健康檢查及共享匯率也已核對。公開商品價格與頁面可讀性會變动，以上只代表驗證當時的樣本結果。
+
+發布 ID：`dpl_4YGFHTSsyvpHqxbr1onEW4Gx9tiw`。來源 commit：`67d68cc55b802b157b9ed0e35dc7d1b50b965bc7`。發布快照 SHA-256：`6501808764f05c25bee5821e9f572cad03e5ba4e7ab6fdf199b55a9e199051b6`。
+
+來源修正：[PR #2](https://github.com/paulchen01/Bychen01/pull/2)。CI：[193 項測試與發布快照驗證](https://github.com/paulchen01/Bychen01/actions/runs/39039919213)。本報告與同名 JSON 保留所有初輪、上線後及重試結果，沒有把失敗回應覆寫為通過。
