@@ -1,0 +1,39 @@
+name: Verify Bunjang automatic quotations
+on:
+  pull_request:
+    paths:
+      - 'korea-quote/site/**'
+      - 'korea-quote/scripts/release.mjs'
+      - 'korea-quote/releases/site-20261017-21.json'
+      - '.github/workflows/bunjang-quote-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'korea-quote/site/**'
+      - 'korea-quote/scripts/release.mjs'
+      - 'korea-quote/releases/site-20261017-21.json'
+      - '.github/workflows/bunjang-quote-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: korea-quote/site/package-lock.json
+      - name: Install test dependencies without lifecycle scripts
+        working-directory: korea-quote/site
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify quote, reader and automatic-input behavior
+        working-directory: korea-quote/site
+        run: npm test
+      - name: Build and verify exact saved release
+        run: node korea-quote/scripts/release.mjs --check

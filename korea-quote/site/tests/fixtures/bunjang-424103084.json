@@ -1,0 +1,67 @@
+{
+  "_source": {
+    "url": "https://api.bunjang.co.kr/api/pms/v1/products/424103084/detail/web",
+    "capturedAt": "2026-10-17T12:08:32.523083+00:00",
+    "note": "Selected fields from a public live response; irrelevant shop/profile metadata omitted."
+  },
+  "data": {
+    "product": {
+      "pid": 424103084,
+      "name": "비투비 인형 광냥이 / 범식이 / 여우뎨 팝니다",
+      "description": "비투비 서은광 임현식 육성재 인형 팝니다\n\n여우뎨 광냥이 범식이 비비범식 있어요 \n\n하나당 1.0\n일괄시 3.8에 팔아요\n\n한번도 외출 경락 안했는데 생활먼지 있을 수 있어요",
+      "price": 10000,
+      "originPrice": 10000,
+      "qty": 4,
+      "saleStatus": "SELLING",
+      "isHidden": false,
+      "imageUrl": "https://media.bunjang.co.kr/product/424103084_{cnt}_1786600426_w{res}.jpg",
+      "imageCount": 1,
+      "trade": {
+        "freeShipping": false,
+        "shippingSpecs": {
+          "DEFAULT": {
+            "fee": 4000
+          },
+          "GS_HALF_PRICE": {
+            "fee": 2000
+          },
+          "CU_THRIFTY": {
+            "fee": 2000
+          }
+        },
+        "inPerson": false
+      },
+      "trades": [
+        {
+          "title": "배송비",
+          "tooltip": "일반 택배는 원하는 장소로 배송받고,\n반값택배는 편의점에서 배송받아요.",
+          "contents": [
+            "일반 4,000원",
+            "GS • CU반값 2,000원"
+          ],
+          "separator": "  |  "
+        }
+      ],
+      "updatedAt": "2026-10-15T00:36:51.891564Z"
+    },
+    "bunpay": {
+      "enabled": true,
+      "shipping": true,
+      "inPerson": true
+    },
+    "shopProducts": [
+      {
+        "pid": 424107086,
+        "price": 63820
+      },
+      {
+        "pid": 424756680,
+        "price": 14000
+      },
+      {
+        "pid": 424103527,
+        "price": 9000
+      }
+    ]
+  }
+}

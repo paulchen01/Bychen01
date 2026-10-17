@@ -1,0 +1,45 @@
+{
+  "_source": {
+    "url": "https://api.bunjang.co.kr/api/pms/v1/products/386933481/detail/web",
+    "capturedAt": "2026-10-17T12:08:32.522028+00:00",
+    "note": "Selected fields from a public live response; irrelevant shop/profile metadata omitted."
+  },
+  "data": {
+    "product": {
+      "pid": 386933481,
+      "name": "비투비) 삐프렌즈 인형 일괄",
+      "description": "💙단순개봉 후 모셔뒀습니다\n\n💙편하게 시간 신경 쓰지 마시고 연락주세용",
+      "price": 64000,
+      "originPrice": 64000,
+      "qty": 1,
+      "saleStatus": "SELLING",
+      "isHidden": false,
+      "imageUrl": "https://media.bunjang.co.kr/product/386933481_{cnt}_1770135718_w{res}.jpg",
+      "imageCount": 3,
+      "trade": {
+        "freeShipping": true,
+        "inPerson": false
+      },
+      "trades": [
+        {
+          "title": "배송비",
+          "contents": [
+            "무료배송"
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-15T06:10:58.671288Z"
+    },
+    "bunpay": {
+      "enabled": true,
+      "shipping": true,
+      "inPerson": true
+    },
+    "shopProducts": [
+      {
+        "pid": 386913781,
+        "price": 130000
+      }
+    ]
+  }
+}

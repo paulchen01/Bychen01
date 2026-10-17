@@ -1,0 +1,5 @@
+{
+  "buildCommand": "node build.mjs",
+  "installCommand": "npm ci --omit=dev --ignore-scripts --no-audit --no-fund",
+  "framework": null
+}
