@@ -25,11 +25,11 @@ function postIdentity(value) {
 
 function endpoint(value, base, post) {
   if (typeof value !== 'string' || value.length > 8192) {
-    fail('OEMBED_REDIRECT_UNSAFE', '公開貼文服務的轉址無法確認，請到 LINE 確認。');
+    fail('OEMBED_REDIRECT_UNSAFE', '公開貼文服務的轉址無法確認，請貼上原平台的完整貼文網址。');
   }
   let url;
   try { url = new URL(value, base); }
-  catch { fail('OEMBED_REDIRECT_UNSAFE', '公開貼文服務的轉址無法確認，請到 LINE 確認。'); }
+  catch { fail('OEMBED_REDIRECT_UNSAFE', '公開貼文服務的轉址無法確認，請貼上原平台的完整貼文網址。'); }
   if (url.protocol !== 'https:' || !HOSTS.has(url.hostname) ||
       url.pathname !== '/oembed' || url.username || url.password || url.port || explicitPort(value) || url.hash) {
     fail('OEMBED_REDIRECT_UNSAFE', '公開貼文服務轉到未支援的目的地，已停止讀取。');
@@ -85,8 +85,8 @@ export async function loadXEmbed(target, fetchImpl = fetch, deadline = Date.now(
     if (!response.ok) {
       await response.body?.cancel();
       fail('PUBLIC_POST_UNAVAILABLE', response.status === 429
-        ? '公開貼文服務目前限制查詢次數，請稍後再試或到 LINE 確認。'
-        : '這則推文未能公開讀取，可能需要登入、已刪除或受到平台限制。請到 LINE 確認。');
+        ? '公開貼文服務目前限制查詢次數，請稍後再試。'
+        : '這則推文未能公開讀取，可能需要登入、已刪除或受到平台限制。請核對原貼文的韓幣售價與運費後使用手動試算。');
     }
     return readText(response);
   }

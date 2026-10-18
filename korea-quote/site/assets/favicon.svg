@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="350 300 480 365"><image href="https://korea-quote-0908.vercel.app/assets/brand.webp" width="1182" height="1182"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="#f7f2e9"/>
+  <path d="M16 29C6 18 13 9 24 22m24 7C58 18 51 9 40 22" fill="#e8bea9" stroke="#73513e" stroke-width="2.5" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="35" rx="23" ry="19" fill="#fff4df" stroke="#73513e" stroke-width="2.5"/>
+  <path d="M18 33q3-3 6 0m16 0q3-3 6 0" fill="none" stroke="#73513e" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="32" cy="40" rx="8" ry="6" fill="#e8bea9" stroke="#73513e" stroke-width="2"/>
+  <path d="M29 39v2m6-2v2" stroke="#73513e" stroke-width="2" stroke-linecap="round"/>
+</svg>

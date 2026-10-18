@@ -26,16 +26,16 @@ export async function publicPage(target,fetchImpl=fetch,deadline=Date.now()+4800
       const location=r.headers.get('location');await r.body?.cancel();
       if(!location)throw new PlatformError('REDIRECT_UNAVAILABLE','頁面轉址未提供目的地。');
       const next=normalize(new URL(location,t.url).href);
-      if(target.kind!=='short'&&(next.platformId!==target.platformId||next.key!==target.key))throw new PlatformError('REDIRECT_CONFIRMATION','頁面轉到登入頁、其他商品或未支援的目的地，請到 LINE 確認。');
-      if(next.kind!=='product'&&next.kind!=='post'&&next.kind!=='short')throw new PlatformError('REDIRECT_CONFIRMATION','短網址沒有指向可確認的商品或貼文，請到 LINE 確認。');
+      if(target.kind!=='short'&&(next.platformId!==target.platformId||next.key!==target.key))throw new PlatformError('REDIRECT_CONFIRMATION','頁面轉到登入頁、其他商品或未支援的目的地，請貼上原平台的完整商品網址。');
+      if(next.kind!=='product'&&next.kind!=='post'&&next.kind!=='short')throw new PlatformError('REDIRECT_CONFIRMATION','短網址沒有指向可確認的商品或貼文，請貼上完整商品或貼文網址。');
       t=next;continue;
     }
-    if(!r.ok){await r.body?.cancel();throw new PlatformError([401,403].includes(r.status)?'ACCESS_RESTRICTED':'UPSTREAM_ERROR',r.status===429?'平台目前限制查詢次數，請稍後再試或到 LINE 詢問。':'平台未提供可讀取的公開頁面（HTTP '+r.status+'），請到 LINE 確認。');}
+    if(!r.ok){await r.body?.cancel();throw new PlatformError([401,403].includes(r.status)?'ACCESS_RESTRICTED':'UPSTREAM_ERROR',r.status===429?'平台目前限制查詢次數，請稍後再試。':'平台未提供可讀取的公開頁面（HTTP '+r.status+'）。請核對原商品頁的韓幣售價與運費後使用手動試算。');}
     return {target:t,html:await readLimited(r)};
   }
-  throw new PlatformError('REDIRECT_LIMIT','這個分享連結轉址較多，請提供商品的完整網址，或直接到 LINE 詢問。');
+  throw new PlatformError('REDIRECT_LIMIT','這個分享連結轉址較多，請貼上原平台的完整商品網址。');
 }
-function pageNotice(t){return t.platformId==='naver'?'已辨識 Naver。比價頁、部落格與社團不等於單一商品售價；請提供 Smart Store 商品頁，或直接到 LINE 確認。':'已辨識 '+t.platformName+'；目前貼的是首頁、賣場或未確認的分享格式，請提供單一商品／貼文網址，或直接到 LINE 詢問。';}
+function pageNotice(t){return t.platformId==='naver'?'已辨識 Naver。請貼上 Smart Store 或品牌商店的單一商品頁；比價頁、部落格與社團無法確認單一商品售價。':'已辨識 '+t.platformName+'；目前貼的是首頁、賣場或未確認的分享格式，請貼上單一商品／貼文的完整網址。';}
 export async function lookup(input,fetchImpl=fetch){
   const original=normalize(input),deadline=Date.now()+48000;let target=original,html=null,p,linkResolution=null;
   const direct=directDomesticTarget(original);if(direct)target=direct.target;
@@ -45,7 +45,7 @@ export async function lookup(input,fetchImpl=fetch){
     }
     if(target.kind==='short'){
       const resolved=await publicPage(target,fetchImpl,deadline);target=resolved.target;html=resolved.html;
-      if(target.kind==='short')return confirmation(original,'分享短網址未解析出商品，請貼完整商品網址或到 LINE 確認。','SHORTLINK_UNRESOLVED');
+      if(target.kind==='short')return confirmation(original,'分享短網址未解析出商品，請貼上原平台的完整商品網址。','SHORTLINK_UNRESOLVED');
     }
     if(target.platformId==='musinsa'&&target.kind==='cart')return withPlatformFee(musinsaCart(target));
     if(target.kind==='page'||(target.platformId==='naver'&&target.kind==='post'))return confirmation(target,pageNotice(target),'NOT_SINGLE_PRODUCT');
@@ -55,7 +55,7 @@ export async function lookup(input,fetchImpl=fetch){
       const headers={Accept:'application/json','X-Respond-With':'markdown','X-Engine':'browser','X-Timeout':'20','X-No-Cache':'true'};
       if(process.env.JINA_API_KEY)headers.Authorization='Bearer '+process.env.JINA_API_KEY;
       const r=await fetchImpl('https://r.jina.ai/'+target.url,{headers,redirect:'manual',signal:AbortSignal.timeout(Math.max(1,Math.min(45000,deadline-Date.now())))});
-      if(!r.ok){await r.body?.cancel();throw new PlatformError('UPSTREAM_ERROR','公開商品讀取服務目前未回應，請稍後重試或到 LINE 確認。');}
+      if(!r.ok){await r.body?.cancel();throw new PlatformError('UPSTREAM_ERROR','公開商品讀取服務目前未回應，請稍後重試，或核對原商品頁後使用手動試算。');}
       const raw=await readLimited(r);
       p=parseOliveYoungReader(raw,target.url);
     }else if(target.platformId==='x'){
@@ -77,7 +77,7 @@ export async function lookup(input,fetchImpl=fetch){
     return {...withPlatformFee(p),...(linkResolution?{linkResolution}:{}),originalUrl:original.url,priceSourceUrl:p.currency==='KRW'?p.url:null,fetchedAt:new Date().toISOString(),fromCache:false};
   }catch(e){
     const known=e instanceof PlatformError||e instanceof QuoteError;
-    const notice=known?e.message:/Abort|Timeout/.test(e.name||'')?'平台載入逾時，這次未取得完整報價。請稍後重試或到 LINE 確認。':'暫時無法連接這個平台，請稍後重試或到 LINE 詢問。';
+    const notice=known?e.message:/Abort|Timeout/.test(e.name||'')?'平台載入逾時，這次未取得完整報價。請稍後重試，或核對原商品頁後使用手動試算。':'暫時無法連接這個平台，請稍後重試，或核對原商品頁後使用手動試算。';
     return confirmation(target,notice,known?e.code:'UPSTREAM_UNAVAILABLE',{originalUrl:original.url,checkedAt:new Date().toISOString(),...(direct?{domesticResolution:{status:'unavailable',method:direct.method,inputUrl:original.url,domesticUrl:target.url,reason:'DOMESTIC_FETCH_FAILED'}}:{})});
   }
 }

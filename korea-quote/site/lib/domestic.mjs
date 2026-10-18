@@ -45,8 +45,8 @@ export function koreanCandidates(html,input){
 function unresolved(source,p,reason,domesticUrl=null){
   const localEntry=source.platformId==='poca'?'https://phocamarket.com/':null;
   const text=source.platformId==='poca'
-    ?'已辨識國際版，已檢查韓國版對應資訊，但未取得同款商品的公開韓幣售價。韓國站不是把 .com 網域替換就能對應；此筆不使用美金換算價，請由廢廢豬確認韓國採購價。'
-    :'已檢查韓國版，但尚未取得同一商品的有效韓幣售價；不使用國際版金額或換匯推算值報價。';
+    ?'已辨識國際版，但尚未取得同款商品可核對的原始韓幣售價，暫不產生台幣報價。請核對同款韓國商品頁的韓幣售價與運費後使用手動試算。'
+    :'已檢查韓國版，但尚未取得同一商品的有效韓幣售價，暫不產生台幣報價。請核對原始韓幣售價與運費後使用手動試算。';
   return confirmation(source,text,'DOMESTIC_PRICE_UNAVAILABLE',{
     ...p,originalUrl:source.url,priceKrw:null,shippingKrw:null,priceSourceUrl:null,
     domesticResolution:{policy:DOMESTIC_POLICY,status:'unavailable',inputUrl:source.url,domesticUrl,reason,fxConversionUsed:false},

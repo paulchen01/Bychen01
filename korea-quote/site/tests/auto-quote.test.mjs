@@ -7,7 +7,7 @@
  * QUOTE_UI_TOOLS may point to another directory containing the test-only jsdom install.
  */
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync,readdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
@@ -42,15 +42,21 @@ function resolved(method='official_redirect'){
   return quoted(A,{originalUrl:LINK,linkResolution:{status:'verified',method,inputUrl:LINK,resolvedUrl:A,productId:'386933481'}});
 }
 
-async function harness(t,query=''){
+async function harness(t,query='',{clipboardAvailable=true}={}){
   assert.equal(typeof vm.SourceTextModule,'function','Run with node --experimental-vm-modules.');
   const dom=new JSDOM(HTML,{url:'https://korea-quote-0908.vercel.app/'+query,runScripts:'outside-only'});
-  const w=dom.window,requests=[],timers=new Map();
+  const w=dom.window,requests=[],timers=new Map(),copied=[],scrolled=[];
   let now=0,timerId=0;
   w.AbortController=AbortController;
   w.AbortSignal=AbortSignal;
   w.matchMedia=()=>({matches:false});
-  w.HTMLElement.prototype.scrollIntoView=function(){};
+  w.HTMLElement.prototype.scrollIntoView=function(){scrolled.push(this.id);};
+  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+  w.HTMLDialogElement.prototype.close=function(){this.open=false;};
+  Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async text=>{
+    if(!clipboardAvailable)throw new w.DOMException('Clipboard unavailable','NotAllowedError');
+    copied.push(text);
+  }}});
   w.setTimeout=(fn,delay=0,...args)=>{
     const id=++timerId;timers.set(id,{at:now+Math.max(0,Number(delay)||0),run:()=>fn(...args)});return id;
   };
@@ -90,7 +96,7 @@ async function harness(t,query=''){
     }
     now=end;await flush();
   }
-  return {w,$,requests,event,enter,advance};
+  return {w,$,requests,event,enter,advance,copied,scrolled};
 }
 
 test('paste, input and change debounce to one automatic quote and show the verified amount',async t=>{
@@ -144,7 +150,9 @@ test('a changed or cleared input removes the previous quotation before any new r
   h.enter('');
   assert.equal(h.$('result').hidden,true);
   assert.equal(h.$('empty').hidden,false);
-  assert.equal(h.$('barPrice').textContent,'@fatfatpig_kr');
+  assert.equal(h.$('barAction').textContent,'開始報價');
+  assert.equal(h.$('quotePreview').textContent,'');
+  assert.equal(h.$('barPrice').textContent,'韓幣 → 台幣');
   await h.advance(1000);assert.equal(h.requests.length,1);
 });
 
@@ -267,8 +275,163 @@ test('the existing Naver short-link behavior still accepts its resolved product'
 
 test('the page advertises automatic lookup and references the new release assets',()=>{
   assert.ok(HTML.includes('貼上完整商品連結，即可自動查價。'));
-  assert.ok(HTML.includes('/app.js?v=20261017-22'));
-  assert.ok(HTML.includes('/smartstore-beta.js?v=20261017-22'));
-  assert.ok(HTML.includes('/style.css?v=20261017-22'));
-  assert.ok(HTML.includes('<span id="version">2026-10-17.22</span>'));
+  assert.ok(HTML.includes('/app.js?v=20261019-23'));
+  assert.ok(HTML.includes('/smartstore-beta.js?v=20261019-23'));
+  assert.ok(HTML.includes('/style.css?v=20261019-23'));
+  assert.ok(HTML.includes('<span id="version">2026-10-19.23</span>'));
+});
+
+test('the initial mobile quote action focuses the product input without a request or navigation',async t=>{
+  const h=await harness(t),location=h.w.location.href;
+  const action=h.$('mobileQuoteAction');
+  assert.equal(action.tagName,'BUTTON');
+  assert.equal(action.type,'button');
+  assert.equal(h.$('barAction').textContent,'開始報價');
+  action.click();await flush();
+  assert.equal(h.w.document.activeElement,h.$('url'));
+  assert.ok(h.scrolled.includes('form'));
+  assert.equal(h.requests.length,0);
+  assert.equal(h.copied.length,0);
+  assert.equal(h.w.location.href,location);
+});
+
+test('desktop and mobile copy a complete standalone quote with the note and unchanged amount',async t=>{
+  const h=await harness(t),location=h.w.location.href;
+  h.enter(A);await h.advance(600);
+  h.requests[0].respond(quoted());await flush();
+  h.$('requestNote').value='藍色款，數量待確認';h.event('requestNote','input');
+  const report=h.$('quotePreview').textContent;
+  assert.match(report,/廢廢豬｜韓國商品報價/);
+  assert.match(report,/商品：商品 A/);
+  assert.ok(report.includes('商品連結：'+A));
+  assert.match(report,/商品金額：₩10,000/);
+  assert.match(report,/韓國境內運費：₩3,000/);
+  assert.match(report,/計算匯率：NT\$1 = ₩38/);
+  assert.match(report,/試算：/);
+  assert.match(report,/代購費：/);
+  assert.match(report,/預估台幣：NT\$393/);
+  assert.match(report,/報價備註：藍色款，數量待確認/);
+  assert.match(report,/國際運費：另計/);
+  assert.doesNotMatch(report,/LINE|line\.me|lin\.ee|@fatfatpig_kr|你好|聊天室|送出|詢價/);
+  assert.equal(h.$('total').textContent,'393');
+  assert.equal(h.$('copy').textContent,'複製報價');
+  assert.equal(h.$('barAction').textContent,'複製報價');
+  h.$('copy').click();await flush();
+  h.$('mobileQuoteAction').click();await flush();
+  assert.deepEqual(h.copied,[report,report]);
+  assert.equal(h.$('toast').textContent,'已複製報價內容。');
+  assert.equal(h.requests.length,1);
+  assert.equal(h.w.location.href,location);
+});
+
+test('a foreign-currency pending product copies known information without inventing a TWD total',async t=>{
+  const h=await harness(t),url='https://pocamarket.com/zh-tw/search/detail/247060';
+  h.enter(url);await h.advance(600);
+  h.requests[0].respond({ok:true,version:APP_VERSION,status:'needs_confirmation',quote:null,product:{
+    ...normalize(url),title:'公開小卡商品',currency:'USD',sourcePrice:2.5,priceKrw:null,
+    shippingKrw:null,platformFeeKrw:null,notice:'尚未取得可核對的韓國原價。'
+  }});await flush();
+  assert.equal(h.$('quoteComplete').hidden,true);
+  assert.equal(h.$('pendingBlock').hidden,false);
+  assert.equal(h.$('copy').textContent,'複製商品資訊');
+  assert.equal(h.$('barAction').textContent,'複製商品資訊');
+  assert.equal(h.$('knownPrice').textContent,'2.5 USD');
+  h.$('requestNote').value='保留商品版本資訊';h.event('requestNote','input');
+  h.$('mobileQuoteAction').click();await flush();
+  const [report]=h.copied;
+  assert.equal(report,h.$('quotePreview').textContent);
+  assert.match(report,/資料待確認，尚未產生台幣報價/);
+  assert.match(report,/頁面商品金額：2\.5 USD/);
+  assert.match(report,/韓國境內運費：待確認/);
+  assert.match(report,/報價備註：保留商品版本資訊/);
+  assert.doesNotMatch(report,/NT\$|₩2\.5|LINE|line\.me|lin\.ee|@fatfatpig_kr|詢價/);
+  assert.equal(h.$('toast').textContent,'已複製商品資訊。');
+  assert.equal(h.requests.length,1);
+});
+
+test('an unavailable clipboard opens only the generic text-copy dialog and keeps the quote intact',async t=>{
+  const h=await harness(t,'',{clipboardAvailable:false});
+  h.enter(A);await h.advance(600);
+  h.requests[0].respond(quoted());await flush();
+  h.$('copy').click();await flush();
+  assert.equal(h.copied.length,0);
+  assert.equal(h.$('copyDialog').open,true);
+  assert.equal(h.$('copyText').value,h.$('quotePreview').textContent);
+  assert.match(h.$('copyText').value,/預估台幣：NT\$393/);
+  assert.equal(h.$('copyText').readOnly,true);
+  assert.equal(h.$('total').textContent,'393');
+  assert.deepEqual([...h.w.document.querySelectorAll('dialog[open]')].map(d=>d.id),['copyDialog']);
+  h.w.document.querySelector('[data-close="copyDialog"]').click();
+  assert.equal(h.$('copyDialog').open,false);
+});
+
+test('the copied estimate explicitly keeps unknown shipping and platform fees excluded',async t=>{
+  const h=await harness(t);
+  h.enter(A);await h.advance(600);
+  h.requests[0].respond(quoted(A,{shippingKrw:null,platformFeeKrw:null}));await flush();
+  h.$('copy').click();await flush();
+  const [report]=h.copied;
+  assert.match(report,/商品粗估，未含韓國運費/);
+  assert.match(report,/韓國境內運費：未標示，本次未計入/);
+  assert.match(report,/未含尚未標示的平台手續費/);
+  assert.match(report,/預估台幣：NT\$314/);
+  assert.doesNotMatch(report,/LINE|line\.me|@fatfatpig_kr|詢價/);
+  assert.equal(h.$('total').textContent,'314');
+});
+
+test('manual calculation copies a clearly labelled estimate without claiming a verified product',async t=>{
+  const h=await harness(t);
+  h.$('p').value='10000';h.$('s').value='3000';h.$('pf').value='0';
+  h.event('manual','submit');await flush();
+  h.$('copy').click();await flush();
+  const [report]=h.copied;
+  assert.match(report,/手動試算，依輸入金額計算/);
+  assert.match(report,/商品：自訂商品/);
+  assert.match(report,/預估台幣：NT\$393/);
+  assert.doesNotMatch(report,/商品連結：|LINE|line\.me|@fatfatpig_kr|詢價/);
+  assert.equal(h.requests.length,0);
+});
+
+test('failed lookup retains the local quotation workflow without a contact action',async t=>{
+  const h=await harness(t);
+  h.enter(A);await h.advance(600);
+  h.requests[0].reject(new DOMException('Aborted','AbortError'));await flush();
+  assert.equal(h.$('error').hidden,false);
+  assert.match(h.$('error').textContent,/載入逾時/);
+  assert.match(h.$('error').textContent,/手動試算/);
+  assert.doesNotMatch(h.$('error').textContent,/LINE|line\.me|@fatfatpig_kr|聯絡/);
+  assert.equal(h.$('result').hidden,true);
+  assert.equal(h.$('errorLine'),null);
+  h.$('mobileQuoteAction').click();await flush();
+  assert.equal(h.w.document.activeElement,h.$('url'));
+  assert.equal(h.requests.length,1);
+});
+
+test('the pure quote DOM has no LINE contact controls, dialogs or legacy preview',async t=>{
+  const h=await harness(t);
+  for(const id of ['lineInquiry','mobileLine','lineDialog','errorLine','copyId','desktopCopy','desktopText','inquiryPreview','showBrand','brandDialog']){
+    assert.equal(h.$(id),null,'Removed contact control: '+id);
+  }
+  assert.ok(h.$('quotePreview'));
+  assert.ok(h.$('copyDialog'));
+  assert.ok(h.$('mobileQuoteAction'));
+  assert.doesNotMatch(h.w.document.body.textContent,/\bLINE\b|@fatfatpig_kr/);
+  assert.equal(h.w.document.querySelector('.contact-card,.qr-block,.line-button,.contact-top'),null);
+});
+
+test('all public HTML and active assets are free of the old contact links and QR artwork',()=>{
+  function pages(directory){
+    return readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{
+      const target=path.join(directory,entry.name);
+      if(entry.isDirectory())return ['node_modules','.vercel','tests'].includes(entry.name)?[]:pages(target);
+      return entry.isFile()&&entry.name.endsWith('.html')?[target]:[];
+    });
+  }
+  for(const file of pages(ROOT)){
+    const content=readFileSync(file,'utf8');
+    assert.doesNotMatch(content,/line\.me|lin\.ee|@fatfatpig_kr|line-qr\.png|assets\/brand\.webp|\bLINE\b/,path.relative(ROOT,file));
+  }
+  for(const asset of ['assets/line-qr.png','assets/brand.webp']){
+    assert.equal(existsSync(path.join(ROOT,asset)),false,'Legacy contact artwork must not be included: '+asset);
+  }
 });

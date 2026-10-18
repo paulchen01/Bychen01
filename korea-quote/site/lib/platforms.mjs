@@ -1,5 +1,5 @@
 /** Supported public page routes. No arbitrary hosts, credentials, IPs or executable URLs. */
-export const APP_VERSION = '2026-10-17.22';
+export const APP_VERSION = '2026-10-19.23';
 export const PLATFORMS = Object.freeze([
   {id:'bunjang',name:'Bunjang 閃電拍賣',native:'번개장터',short:'Bunjang',detail:'公開商品與一般宅配費'},
   {id:'fruits',name:'FruitsFamily',native:'후루츠패밀리',short:'FruitsFamily',detail:'公開標價；未標運費先估商品價'},
