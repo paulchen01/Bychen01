@@ -1,0 +1,281 @@
+{
+  "createdAt": "2026-10-18T11:20:46.704594+00:00",
+  "inputUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+  "request": "核對 App 韓幣原價並接入韓幣→台幣報價",
+  "currentProductionVersion": "2026-10-17.22",
+  "productionQuoteCheck": {
+    "name": "production_quote",
+    "inputUrl": "https://korea-quote-0908.vercel.app/api/quote?url=https%3A%2F%2Fpocamarket.com%2Fzh-tw%2Fsearch%2Fdetail%2F515045",
+    "requestedAt": "2026-10-18T11:16:16.312800+00:00",
+    "httpStatus": 200,
+    "finalUrl": "https://korea-quote-0908.vercel.app/api/quote?url=https%3A%2F%2Fpocamarket.com%2Fzh-tw%2Fsearch%2Fdetail%2F515045",
+    "checkedAt": "2026-10-18T11:16:18.120191+00:00",
+    "elapsedSeconds": 1.81,
+    "bytes": 1495,
+    "response": {
+      "ok": true,
+      "status": "needs_confirmation",
+      "product": {
+        "platformId": "poca",
+        "platformName": "Pocamarket 小卡市集",
+        "id": "515045",
+        "kind": "product",
+        "market": "global",
+        "url": "https://pocamarket.com/zh-tw/search/detail/515045",
+        "key": "poca:515045",
+        "title": "Pocamarket, KickFlip Juwang KICK OFF THE WALL Pt.1 ALADIN K-pop Photocard",
+        "currency": null,
+        "priceKrw": null,
+        "shippingKrw": null,
+        "image": "https://d1sut5kn3lwnf7.cloudfront.net/media/photocard_blur/2026/10/14/89603e45880b4eecbb22a4881c8e93f0.jpg",
+        "warnings": [],
+        "status": "needs_confirmation",
+        "notice": "已辨識國際版，已檢查韓國版對應資訊，但未取得同款商品的公開韓幣售價。韓國站不是把 .com 網域替換就能對應；此筆不使用美金換算價，請由廢廢豬確認韓國採購價。",
+        "reasonCode": "DOMESTIC_PRICE_UNAVAILABLE",
+        "originalUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+        "priceSourceUrl": null,
+        "domesticResolution": {
+          "policy": "verified-korean-listing-v1",
+          "status": "unavailable",
+          "inputUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+          "domesticUrl": null,
+          "reason": "NO_VERIFIED_KOREAN_LINK",
+          "fxConversionUsed": false
+        },
+        "koreanSiteUrl": "https://phocamarket.com/",
+        "platformFeeKrw": null,
+        "platformFeeStatus": "unknown",
+        "platformFeeNotice": "未標示，本次未計入。",
+        "fetchedAt": "2026-10-18T11:16:17.705Z",
+        "fromCache": false
+      },
+      "quote": null,
+      "rate": {
+        "exchangeRate": 38,
+        "checkedAt": "2026-10-18T11:16:18.069Z",
+        "source": "google_sheets",
+        "cell": "B2",
+        "fromCache": false
+      },
+      "version": "2026-10-17.22"
+    }
+  },
+  "publicPageEvidence": {
+    "checkedAt": "2026-10-18T11:16:16.969793+00:00",
+    "httpStatus": 200,
+    "canonicalUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+    "htmlSha256": "2d7de4008e22de6414720109ea9eef6fd5a5f26ff388f6789293a084373ed50c",
+    "mainQueryKey": [
+      "detail",
+      "515045"
+    ],
+    "mainProduct": {
+      "id": 515045,
+      "name": "KICK OFF THE WALL Pt.1 ALADIN",
+      "image": "https://d1sut5kn3lwnf7.cloudfront.net/media/photocard_blur/2026/10/14/89603e45880b4eecbb22a4881c8e93f0.jpg",
+      "releaseMonth": null,
+      "group": {
+        "id": 137,
+        "name": "KickFlip"
+      },
+      "member": {
+        "id": 871,
+        "name": "Juwang"
+      },
+      "kind": {
+        "id": 9,
+        "name": "Benefit"
+      },
+      "wishCount": 2,
+      "grade": "UNKNOWN",
+      "stock": 1,
+      "price": {
+        "price": "17.50",
+        "nextPrice": null,
+        "nextPrices": [],
+        "priceLocalized": "566",
+        "displayCurrency": "TWD"
+      },
+      "discount": null,
+      "coupon": null,
+      "sellerShop": null,
+      "checkWish": false,
+      "isPickPack": false,
+      "inspection": {
+        "number": 490370,
+        "completedDate": "2026-10-14"
+      }
+    },
+    "visibleCurrency": "USD",
+    "visiblePrice": "17.50",
+    "referenceCurrency": "TWD",
+    "referencePrice": "566",
+    "hasKoreanAlternate": false,
+    "hasExplicitKrwPrice": false
+  },
+  "officialSources": [
+    {
+      "url": "https://pocamarket.oopy.io/3dfd1453-8861-812b-8781-e0166daad988",
+      "finding": "Current Traditional Chinese product guide: display currency can be changed; payments remain in USD."
+    },
+    {
+      "url": "https://pocamarket.oopy.io/3dfd1453-8861-81df-9d81-df15a5e5b24c",
+      "finding": "Different sellers may set different prices for the same card."
+    },
+    {
+      "url": "https://apps.apple.com/kr/app/id1638848943",
+      "finding": "Separate Korean App listing; this does not prove the user installed this App or a same-ID product mapping."
+    },
+    {
+      "url": "https://apps.apple.com/us/app/pocamarket/id6448335489",
+      "finding": "Global App listing linked by the supplied product page."
+    }
+  ],
+  "sourceCaveat": "The older English FAQ says only English is supported, conflicting with the live multilingual site; use the current Traditional Chinese guide and live data instead.",
+  "finding": "The supplied global URL identifies the card but does not yet establish the Korean App purchase price.",
+  "automaticKrwQuoteVerified": false,
+  "appProductMappingVerified": false,
+  "usdToKrwInferenceUsed": false,
+  "limitations": [
+    "The App screen and original in-App share link have not been supplied.",
+    "No authenticated App session or Korean App product data was accessed.",
+    "No conclusion that all App/API versions lack KRW support is made."
+  ],
+  "nextEvidenceNeeded": [
+    "Same-card App screenshot showing image/name, KRW purchase amount and purchase type/button.",
+    "Original share URL copied inside that App; may differ from the supplied global URL."
+  ],
+  "runtimeChanged": false,
+  "productionDeploymentChanged": false,
+  "inspectedPublicAssetHashes": {
+    "shared-api-9082.js": "76136be86c039c205132af3bf0d1e4a87fb00445913211edaf634499ff5d1cbd",
+    "detail-page.js": "a866acc2548a1625f6c9ce5e1248bd99fcc6825f6236310e6ca47a1481c6b534",
+    "detail-layout.js": "8a4beb9a534a578df6197466e0e3ff2b4709423cce327045a90d951dc483b904"
+  },
+  "observedGlobalDisplayCurrencies": [
+    "USD",
+    "MXN",
+    "EUR",
+    "JPY",
+    "BRL",
+    "GBP",
+    "CAD",
+    "CNY",
+    "TWD",
+    "PLN"
+  ],
+  "publicClientAnalysis": {
+    "checkedAt": "2026-10-18T11:20:11.150639+00:00",
+    "productId": "515045",
+    "sourceUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+    "method": "Read-only JSON decoding of official public page RSC and inspection of five explicitly referenced public JavaScript files. No script execution, credentials, endpoint guessing, or production quote request.",
+    "mainQueryKey": [
+      "detail",
+      "515045"
+    ],
+    "mainProduct": {
+      "id": 515045,
+      "name": "KICK OFF THE WALL Pt.1 ALADIN",
+      "group": "KickFlip",
+      "member": "Juwang",
+      "image": "https://d1sut5kn3lwnf7.cloudfront.net/media/photocard_blur/2026/10/14/89603e45880b4eecbb22a4881c8e93f0.jpg",
+      "stock": 1,
+      "price": {
+        "price": "17.50",
+        "nextPrice": null,
+        "nextPrices": [],
+        "priceLocalized": "566",
+        "displayCurrency": "TWD"
+      },
+      "discount": null,
+      "coupon": null
+    },
+    "nativeKrwPriceVerified": false,
+    "webSourcePrice": {
+      "amount": "17.50",
+      "currency": "USD",
+      "currencyEvidence": "Product document visibly renders 17.50 USD; state provides price.price=17.50 with a separate localized value."
+    },
+    "webDisplayPreference": {
+      "header": "POCA-CURRENCY",
+      "allowed": [
+        "USD",
+        "MXN",
+        "EUR",
+        "JPY",
+        "BRL",
+        "GBP",
+        "CAD",
+        "CNY",
+        "TWD",
+        "PLN"
+      ],
+      "default": "USD",
+      "krwAllowedByObservedClient": false,
+      "locales": [
+        "en",
+        "es",
+        "ja",
+        "zh-cn",
+        "zh-tw"
+      ],
+      "evidenceSource": "shared-api-9082.js"
+    },
+    "limits": [
+      "Same card 515045 is bound by canonical, detail query key and main result.id. Its captured global state contains no native KRW price or Korean-App listing mapping.",
+      "Five small page-referenced scripts were read; no Korean App endpoint was established. This does not establish that the Korean App lacks a KRW price.",
+      "Only observed recommendation GET and view-tracking POST were found; neither was called. No endpoint was guessed or tested."
+    ],
+    "recommendation": "Keep quotation pending. Obtain the same-card App purchase-screen KRW amount and original App share link to establish a native Korean listing and exact identity before modifying the parser.",
+    "networkScope": {
+      "scriptRequests": 5,
+      "productApiRequests": 0,
+      "productionQuoteRequests": 0,
+      "additionalRequestsStopped": true
+    },
+    "sources": [
+      {
+        "url": "https://pocamarket.com/zh-tw/search/detail/515045",
+        "checkedAt": "2026-10-18T11:16:16.969793+00:00",
+        "sha256": "2d7de4008e22de6414720109ea9eef6fd5a5f26ff388f6789293a084373ed50c",
+        "file": "product.html"
+      },
+      {
+        "url": "https://pocamarket.com/_next/static/chunks/app/%5Blocale%5D/search/detail/%5Bid%5D/page-9380c8acad381b4a.js",
+        "checkedAt": "2026-10-18T11:17:14.343Z",
+        "httpStatus": 200,
+        "sha256": "a866acc2548a1625f6c9ce5e1248bd99fcc6825f6236310e6ca47a1481c6b534",
+        "file": "detail-page.js"
+      },
+      {
+        "url": "https://pocamarket.com/_next/static/chunks/app/%5Blocale%5D/search/detail/%5Bid%5D/layout-9a1018fe8491d80f.js",
+        "checkedAt": "2026-10-18T11:17:14.392Z",
+        "httpStatus": 200,
+        "sha256": "8a4beb9a534a578df6197466e0e3ff2b4709423cce327045a90d951dc483b904",
+        "file": "detail-layout.js"
+      },
+      {
+        "url": "https://pocamarket.com/_next/static/chunks/9082-84aefc5b6ecb249d.js",
+        "checkedAt": "2026-10-18T11:18:09.059Z",
+        "httpStatus": 200,
+        "sha256": "76136be86c039c205132af3bf0d1e4a87fb00445913211edaf634499ff5d1cbd",
+        "file": "shared-api-9082.js"
+      },
+      {
+        "url": "https://pocamarket.com/_next/static/chunks/234-9c53d67e7fecb46b.js",
+        "checkedAt": "2026-10-18T11:18:09.110Z",
+        "httpStatus": 200,
+        "sha256": "e42007aa70dd85a48de420526880dda3bb8944dca81a78be47365fa15b712128",
+        "file": "shared-234.js"
+      },
+      {
+        "url": "https://pocamarket.com/_next/static/chunks/8244-bfc19e326c15b719.js",
+        "checkedAt": "2026-10-18T11:18:47.935Z",
+        "httpStatus": 200,
+        "sha256": "fe975bb7bb84cbe8e95247ea00c66e8f6bffe142bb82c2b5ff168ae4ff2d467c",
+        "file": "detail-shared-8244.js"
+      }
+    ],
+    "repositoryChanged": false
+  }
+}
