@@ -1,6 +1,16 @@
 # 廢廢豬韓國代購報價系統
 
-本目錄是可直接維護與測試的網站來源，從既有 `site-20260915-20.json` 核對 SHA-256 後還原。2026-10-17 更新版本為 **2026-10-17.22**。原始歷次發布檔與驗收紀錄保留於 `../releases/`。
+本目錄是可直接維護與測試的網站來源，從既有 `site-20260915-20.json` 核對 SHA-256 後還原。2026-10-19 更新版本為 **2026-10-19.23（純報價版）**。原始歷次發布檔與驗收紀錄保留於 `../releases/`。
+
+## v23 純報價版
+
+依使用者要求，先將完整原版建立為獨立備份分支 `backup/with-line-20261019-v22`（commit `6263ba7b637b0f63a853efb5ca6c125a3755f484`），驗證後才開始修改。備份內容與當時 v22 正式首頁 hash 一致，詳見 [備份與還原說明](../releases/backup-with-line-20261019.md)。
+
+新版首頁與 9 個教學／平台頁只提供商品查價、手動試算、費用說明與複製報價。刪除 LINE 導流文字、帳號、連結、QR Code、含帳號的品牌圖片、聯絡對話框及舊詢價程式；品牌改用乾淨的小豬 SVG。分享 metadata 與公開 llms.txt 亦完成清理。
+
+複製內容現在是獨立報價明細，包含韓幣商品款、已確認費用、匯率、計算式、台幣總額、時間及備註。手機底部按鈕在空白狀態聚焦商品輸入欄；有結果時複製報價或商品資訊。剪貼簿無法使用時保留可選取的純文字對話框。缺少韓幣原價仍不產生台幣總額，錯誤提示改為重試、核對商品頁或手動試算。
+
+202 項本機測試通過，包含 44 項真實 HTML 與 app.js 的 jsdom 互動測試。發布腳本逐檔驗證備份基準，禁止聯絡內容及被刪除的圖片／程式進入部署包。這些測試不等同正式瀏覽器驗收或部署完成；GitHub PR 保留完整 CI 結果。原專案目前需要有效的 Vercel 授權才可完成純報價版上線。 候選程式另外實測原 Bunjang 連結：₩64,000、韓國免運、匯率 38 → NT$1,819；Pocamarket 515045 仍缺少可核對的韓幣原價，因此保持無台幣總額。兩者複製內容均不含聯絡導流，原始回應保存在 [候選程式實測紀錄](../releases/quote-only-live-check-20261019-23.json)。
 
 ## v22 平台抽測與相容性修正
 
@@ -25,7 +35,7 @@
 
 ## 報價規則
 
-既有報價規則、Google Sheets B2 匯率同步、LINE 聯絡方式與費用揭露維持原設定。`lib/pricing.mjs`、`lib/estimate.mjs`、`lib/platform-fee.mjs`、`lib/sheet-rate.mjs` 與原正式 v20 的 SHA-256 相同。
+既有報價規則、Google Sheets B2 匯率同步與費用揭露維持原設定。`lib/pricing.mjs`、`lib/estimate.mjs`、`lib/sheet-rate.mjs` 保持原正式版的 SHA-256；`lib/platform-fee.mjs` 僅將 Fruits 提示改成原商品結帳頁費用說明，還原該單一文案後的 hash 必須與原版一致。
 
 以商品款加韓國境內運費作為級距基礎：₩25,000 以下固定 NT$50；₩25,001–79,999 加 8%；₩80,000–149,999 加 5%；₩150,000–199,999 加 3%；₩200,000 以上免代購費。只在最終台幣金額無條件進位。未知的平台費不當成零；國際運費另計。
 
@@ -42,7 +52,7 @@ npm test
 npm run build
 ```
 
-`npm test` 共執行 193 項測試：28 項 Bunjang API／網址／費用、63 項 reader、16 項 Olive Young 折扣與運費、12 項平台網址與幣別、39 項 X 官方轉址與貼文解析，以及 35 項 DOM 互動測試。DOM 測試載入實際 app.js 與 HTML，以受控 API 回應驗證自動提交、重複提交、取消與亂序回應；不是正式站瀏覽器驗收。正常 reader 文字 fixtures 為依已觀察布局建立的合成樣本；官方 API fixtures 為公開實測回應的必要欄位，附來源日期。
+`npm test` 共執行 202 項測試：28 項 Bunjang API／網址／費用、63 項 reader、16 項 Olive Young 折扣與運費、12 項平台網址與幣別、39 項 X 官方轉址與貼文解析，以及 44 項 DOM 互動測試。DOM 測試載入實際 app.js 與 HTML，以受控 API 回應驗證自動提交、重複提交、取消與亂序回應；不是正式站瀏覽器驗收。正常 reader 文字 fixtures 為依已觀察布局建立的合成樣本；官方 API fixtures 為公開實測回應的必要欄位，附來源日期。
 
 `npm run build` 產生 `.vercel/output`，包含靜態網站及 `/api/health`、`/api/rate`、`/api/quote` 三個函式。使用者仍可按原按鈕重試與手動試算。
 
@@ -50,7 +60,7 @@ npm run build
 
 原站：`https://korea-quote-0908.vercel.app`。發布目標必須是既有 Vercel 專案 `korea-quote-0908`，不可建立替代專案或改變網站權限。
 
-從專案根目錄執行 `node korea-quote/scripts/release.mjs --check`，可核對已保存的 v22 發布檔是否與目前來源完全一致。產生新發布快照則執行相同指令但省略 `--check`。發布前需確認正確團隊、專案與已測試 commit；發布後應實測 `/api/health` 的版本與使用者商品 `/api/quote` 的內容。
+從專案根目錄執行 `node korea-quote/scripts/release.mjs --check`，可核對已保存的 v23 發布檔是否與目前來源完全一致。產生新發布快照則執行相同指令但省略 `--check`。發布前需確認正確團隊、專案與已測試 commit；發布後應實測 `/api/health` 的版本與使用者商品 `/api/quote` 的內容。
 
 **2026-10-17 v21 發布紀錄：**使用者完成 Vercel 官方登入授權後，已透過 CLI 發布至原 `bychen999 / korea-quote-0908` 專案，正式網址維持 `https://korea-quote-0908.vercel.app`。部署 ID 為 `dpl_CU3veVpyxbxybm6Am8SPirkrEsHW`，發布來源 commit 為 `584478b5ff1546d43fd3d278414a8624bcd703c9`，發布檔 SHA-256 維持 `b3c5747728f113abafbdbd59902b3710eab30d2ef76717920ce1bd05785f7ba1`。
 

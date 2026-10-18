@@ -1,0 +1,142 @@
+{
+  "version": "2026-10-19.23",
+  "stage": "candidate-source-not-production",
+  "releaseSha256": "66edd27920e7ed886a540c29e7c3a4d7ef84fff40ab838ec3cedf3c58123921f",
+  "records": [
+    {
+      "input": "https://m.bunjang.co.kr/products/386933481",
+      "testedAt": "2026-10-18T22:25:43.388Z",
+      "headers": {
+        "Cache-Control": "no-store",
+        "X-Quote-Version": "2026-10-19.23"
+      },
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "estimated",
+        "product": {
+          "platformId": "bunjang",
+          "platformName": "Bunjang 閃電拍賣",
+          "id": "386933481",
+          "kind": "product",
+          "market": "kr",
+          "url": "https://m.bunjang.co.kr/products/386933481",
+          "key": "bunjang:386933481",
+          "title": "비투비) 삐프렌즈 인형 일괄",
+          "currency": "KRW",
+          "priceKrw": 64000,
+          "shippingKrw": 0,
+          "shippingMethod": "韓國一般宅配",
+          "image": "https://media.bunjang.co.kr/product/386933481_1_1770135718_w320.jpg",
+          "status": "quoted",
+          "reasonCode": null,
+          "notice": "按主商品標價及韓國一般宅配估算；款式、數量、平台費與庫存以原商品頁資訊為準。",
+          "extractionSource": "bunjang_public_api",
+          "sourceUpdatedAt": "2026-10-15T06:10:58.671288Z",
+          "evidence": {
+            "productId": "386933481",
+            "price": "data.product.price = 64000",
+            "shipping": "trade.freeShipping = true",
+            "saleStatus": "SELLING"
+          },
+          "apiPath": "/api/pms/v1/products/{id}/detail/web",
+          "dataSourceUrl": "https://api.bunjang.co.kr/api/pms/v1/products/386933481/detail/web",
+          "platformFeeKrw": null,
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "originalUrl": "https://m.bunjang.co.kr/products/386933481",
+          "priceSourceUrl": "https://m.bunjang.co.kr/products/386933481",
+          "fetchedAt": "2026-10-18T22:25:43.684Z",
+          "fromCache": false
+        },
+        "quote": {
+          "priceKrw": 64000,
+          "shippingKrw": 0,
+          "subtotalKrw": 64000,
+          "exchangeRate": 38,
+          "pricingVersion": "2026-09-15.5",
+          "feeBasis": "subtotalKrw",
+          "tierId": "percent8",
+          "tierRange": "₩25,001～79,999",
+          "feeType": "percent",
+          "servicePercent": 8,
+          "fixedFeeTwd": 0,
+          "serviceLabel": "換算台幣後加 8%",
+          "baseTwd": 1684.2105263157894,
+          "serviceTwd": 134.73684210526315,
+          "totalTwd": 1819,
+          "platformFeeKrw": null,
+          "platformFeeExcluded": true,
+          "platformFeeTwd": null,
+          "rateCheckedAt": "2026-10-18T22:25:44.102Z"
+        },
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-18T22:25:44.102Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-19.23"
+      },
+      "copyText": "廢廢豬｜韓國商品報價\n【網站預估報價】\n平台：Bunjang 閃電拍賣\n商品：비투비) 삐프렌즈 인형 일괄\n商品連結：https://m.bunjang.co.kr/products/386933481\n商品金額：₩64,000\n韓國境內運費：₩0\n韓國平台手續費：未標示，本次未計入\n計算匯率：NT$1 = ₩38\n匯率確認時間：2026/10/19 06:25:44（台灣）\n試算：（64000＋0）÷38×1.08\n代購費：8% 代購費\n預估台幣：NT$1,819（已含代購費；未含尚未標示的平台手續費）\n國際運費：另計，未包含於本次預估。\n資料取得時間：2026/10/19 06:25:43（台灣）\n本報價為預估金額，商品選項、售價及費用以原商品頁與結帳頁為準。"
+    },
+    {
+      "input": "https://pocamarket.com/zh-tw/search/detail/515045",
+      "testedAt": "2026-10-18T22:25:43.401Z",
+      "headers": {
+        "Cache-Control": "no-store",
+        "X-Quote-Version": "2026-10-19.23"
+      },
+      "httpStatus": 200,
+      "response": {
+        "ok": true,
+        "status": "needs_confirmation",
+        "product": {
+          "platformId": "poca",
+          "platformName": "Pocamarket 小卡市集",
+          "id": "515045",
+          "kind": "product",
+          "market": "global",
+          "url": "https://pocamarket.com/zh-tw/search/detail/515045",
+          "key": "poca:515045",
+          "title": "Pocamarket, KickFlip Juwang KICK OFF THE WALL Pt.1 ALADIN K-pop Photocard",
+          "currency": null,
+          "priceKrw": null,
+          "shippingKrw": null,
+          "image": "https://d1sut5kn3lwnf7.cloudfront.net/media/photocard_blur/2026/10/14/89603e45880b4eecbb22a4881c8e93f0.jpg",
+          "warnings": [],
+          "status": "needs_confirmation",
+          "notice": "已辨識國際版，但尚未取得同款商品可核對的原始韓幣售價，暫不產生台幣報價。請核對同款韓國商品頁的韓幣售價與運費後使用手動試算。",
+          "reasonCode": "DOMESTIC_PRICE_UNAVAILABLE",
+          "originalUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+          "priceSourceUrl": null,
+          "domesticResolution": {
+            "policy": "verified-korean-listing-v1",
+            "status": "unavailable",
+            "inputUrl": "https://pocamarket.com/zh-tw/search/detail/515045",
+            "domesticUrl": null,
+            "reason": "NO_VERIFIED_KOREAN_LINK",
+            "fxConversionUsed": false
+          },
+          "koreanSiteUrl": "https://phocamarket.com/",
+          "platformFeeKrw": null,
+          "platformFeeStatus": "unknown",
+          "platformFeeNotice": "未標示，本次未計入。",
+          "fetchedAt": "2026-10-18T22:25:44.019Z",
+          "fromCache": false
+        },
+        "quote": null,
+        "rate": {
+          "exchangeRate": 38,
+          "checkedAt": "2026-10-18T22:25:44.102Z",
+          "source": "google_sheets",
+          "cell": "B2",
+          "fromCache": false
+        },
+        "version": "2026-10-19.23"
+      },
+      "copyText": "廢廢豬｜商品資訊\n【資料待確認，尚未產生台幣報價】\n平台：Pocamarket 小卡市集\n商品：Pocamarket, KickFlip Juwang KICK OFF THE WALL Pt.1 ALADIN K-pop Photocard\n商品連結：https://pocamarket.com/zh-tw/search/detail/515045\n頁面商品金額：待確認\n韓國境內運費：待確認\n韓國平台手續費：未標示，本次未計入\n待確認資料：已辨識國際版，但尚未取得同款商品可核對的原始韓幣售價，暫不產生台幣報價。請核對同款韓國商品頁的韓幣售價與運費後使用手動試算。\n確認原商品韓幣售價後，可重新查詢或使用手動試算。"
+    }
+  ]
+}

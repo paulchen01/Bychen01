@@ -17,6 +17,6 @@ export function parsePlatformFee(text=''){
 export function withPlatformFee(product){
   if(!product)return product;
   const valid=Number.isSafeInteger(product.platformFeeKrw)&&product.platformFeeKrw>=0&&product.platformFeeKrw<=1e9;
-  return {...product,platformFeeKrw:valid?product.platformFeeKrw:null,platformFeeStatus:valid?'known':'unknown',platformFeeNotice:valid?'按本商品公開標示的平台費計入。':product.platformId==='fruits'?'未標示，本次未計入；需登入後由廢廢豬確認。':'未標示，本次未計入。'};
+  return {...product,platformFeeKrw:valid?product.platformFeeKrw:null,platformFeeStatus:valid?'known':'unknown',platformFeeNotice:valid?'按本商品公開標示的平台費計入。':product.platformId==='fruits'?'未標示，本次未計入；請以原商品結帳頁顯示的費用為準。':'未標示，本次未計入。'};
 }
 export function platformFeeText(fee){return Number.isSafeInteger(fee)&&fee>=0?'₩'+new Intl.NumberFormat('zh-TW').format(fee)+(fee===0?'（已確認免平台費）':''):'未標示，本次未計入';}

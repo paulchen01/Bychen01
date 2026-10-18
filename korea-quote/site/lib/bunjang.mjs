@@ -42,8 +42,8 @@ async function request(url,fetchImpl,deadline,{timeout=8000,limit=500000,headers
 }
 function apiFailure(data,status){
   const code=data?.error?.code??data?.code??data?.errorCode;
-  if(['ERR_PRODUCT_NOT_FOUND','ERR_DELETED_PRODUCT','ERR_PRODUCT_STOP_SELLING','ERR_MERCARI_PRODUCT_CANNOT_ACCESS'].includes(code))fail('UNAVAILABLE_PRODUCT','商品已下架、停止販售或無法購買，請到 LINE 確認。');
-  if(code==='ERR_NOT_HIDDEN_PRODUCT_OWNER'||[401,403].includes(status))fail('ACCESS_RESTRICTED','這件商品無法公開讀取，請到 LINE 確認。');
+  if(['ERR_PRODUCT_NOT_FOUND','ERR_DELETED_PRODUCT','ERR_PRODUCT_STOP_SELLING','ERR_MERCARI_PRODUCT_CANNOT_ACCESS'].includes(code))fail('UNAVAILABLE_PRODUCT','商品已下架、停止販售或無法購買，請查看原商品頁的最新販售狀態。');
+  if(code==='ERR_NOT_HIDDEN_PRODUCT_OWNER'||[401,403].includes(status))fail('ACCESS_RESTRICTED','這件商品無法公開讀取，請核對原商品頁的韓幣售價與運費後使用手動試算。');
 }
 /** Parse only data.product. shopProducts, ads and seller instructions are not prices. */
 export function parseBunjangApi(payload,input){
@@ -54,8 +54,8 @@ export function parseBunjangApi(payload,input){
   const p=data?.data?.product;
   if(!object(p)||!['string','number'].includes(typeof p.pid)||!/^\d{5,15}$/.test(String(p.pid)))fail('BUNJANG_SCHEMA_CHANGED','商品資料欄位已變更，正在嘗試其他公開來源。');
   if(String(p.pid)!==target.id)fail('PRODUCT_MISMATCH','資料來源回傳不同商品，已停止報價。');
-  if(p.isHidden===true||(typeof p.saleStatus==='string'&&p.saleStatus!=='SELLING')||won(p.qty,true)===0)fail('UNAVAILABLE_PRODUCT','商品已售出、預約、隱藏或停止販售，請到 LINE 確認。');
-  if(p.saleStatus!=='SELLING'||p.isHidden!==false)fail('BUNJANG_SCHEMA_CHANGED','目前無法核對商品販售狀態，請到 LINE 確認。');
+  if(p.isHidden===true||(typeof p.saleStatus==='string'&&p.saleStatus!=='SELLING')||won(p.qty,true)===0)fail('UNAVAILABLE_PRODUCT','商品已售出、預約、隱藏或停止販售，請查看原商品頁的最新販售狀態。');
+  if(p.saleStatus!=='SELLING'||p.isHidden!==false)fail('BUNJANG_SCHEMA_CHANGED','目前無法核對商品販售狀態，請稍後重試並查看原商品頁的最新狀態。');
   if(p.currency!==undefined&&p.currency!=='KRW')fail('CURRENCY_MISMATCH','這不是已確認的韓元售價，已停止自動換算。');
   const priceKrw=won(p.price),title=typeof p.name==='string'?p.name.trim():'';
   if(priceKrw===null||!title||title.length>400)fail('BUNJANG_SCHEMA_CHANGED','尚未取得有效的商品名稱與售價。');
@@ -63,10 +63,10 @@ export function parseBunjangApi(payload,input){
   const trade=object(p.trade)?p.trade:{},standard=trade.shippingSpecs?.DEFAULT;
   const fee=object(standard)?won(standard.fee,true):null;
   if(trade.freeShipping===true){
-    if(fee!==null&&fee!==0)fail('SHIPPING_AMBIGUOUS','商品的免運與一般宅配費標示互相衝突，請到 LINE 確認。');
+    if(fee!==null&&fee!==0)fail('SHIPPING_AMBIGUOUS','商品的免運與一般宅配費標示互相衝突，請核對原商品頁的一般宅配費後使用手動試算。');
     shippingKrw=0;shippingEvidence='trade.freeShipping = true';
   }else if(fee!==null){
-    if(fee===0&&trade.freeShipping===false)fail('SHIPPING_AMBIGUOUS','一般宅配標示 0 元，但商品未標免運，請到 LINE 確認。');
+    if(fee===0&&trade.freeShipping===false)fail('SHIPPING_AMBIGUOUS','一般宅配標示 0 元，但商品未標免運，請核對原商品頁的一般宅配費後使用手動試算。');
     shippingKrw=fee;shippingEvidence='trade.shippingSpecs.DEFAULT.fee = '+fee;
   }
   // Cross-check explicit public shipping labels; never use the cheapest store pickup fee.
@@ -76,7 +76,7 @@ export function parseBunjangApi(payload,input){
     if(m)return [won(m[1].replace(/,/g,''),true)];
     return /^(?:일반(?:\s*택배)?\s*)?무료(?:\s*배송)?$/.test(t.trim())?[0]:[];
   }).filter(v=>v!==null);
-  if(new Set(labelValues).size>1||shippingKrw!==null&&labelValues.some(v=>v!==shippingKrw)||trade.freeShipping===false&&labelValues.includes(0))fail('SHIPPING_AMBIGUOUS','一般宅配費的公開標示不一致，請到 LINE 確認。');
+  if(new Set(labelValues).size>1||shippingKrw!==null&&labelValues.some(v=>v!==shippingKrw)||trade.freeShipping===false&&labelValues.includes(0))fail('SHIPPING_AMBIGUOUS','一般宅配費的公開標示不一致，請核對原商品頁的一般宅配費後使用手動試算。');
   if(shippingKrw===null&&labelValues.length){shippingKrw=labelValues[0];shippingEvidence=shippingLabels.join(' | ');}
   const restricted=/(?:반택|반값(?:택배)?|알뜰(?:택배)?)\s*만\s*(?:가능|합니다|해요)|(?:일반\s*택배)\s*(?:불가|안\s*돼|안\s*되)|직거래\s*만/.test(String(p.description??''));
   const image=String(p.imageUrl??'').replace('{cnt}','1').replace('{res}','320');
@@ -84,7 +84,7 @@ export function parseBunjangApi(payload,input){
   return {...target,title,currency:'KRW',priceKrw,shippingKrw,shippingMethod:'韓國一般宅配',image:verifiedImage,
     status:restricted||shippingKrw===null?'needs_confirmation':'quoted',
     reasonCode:restricted?'SHIPPING_RESTRICTED':shippingKrw===null?'SHIPPING_UNKNOWN':null,
-    notice:restricted?'賣家文字限制寄送方式，需確認能否使用韓國一般宅配，暫不提供完整報價。':shippingKrw===null?'已依商品售價粗估，未含未確認的韓國境內運費；正式報價請到 LINE 確認。':'按主商品標價及韓國一般宅配估算；款式、數量、平台費與庫存請到 LINE 確認。',
+    notice:restricted?'賣家文字限制寄送方式，需確認能否使用韓國一般宅配，暫不提供完整報價。':shippingKrw===null?'已依商品售價粗估，未含尚未確認的韓國境內運費；請核對原商品頁的運費後補入手動試算。':'按主商品標價及韓國一般宅配估算；款式、數量、平台費與庫存以原商品頁資訊為準。',
     extractionSource:'bunjang_public_api',sourceUpdatedAt:typeof p.updatedAt==='string'?p.updatedAt:null,
     evidence:{productId:String(p.pid),price:'data.product.price = '+priceKrw,shipping:shippingEvidence,saleStatus:p.saleStatus}};
 }
@@ -120,7 +120,7 @@ export async function resolveBunjangTarget(input,fetchImpl=fetch,deadline=Date.n
     if(page.status!==200)fail('UPSTREAM_UNAVAILABLE','商品分享連結暫時無法讀取，請稍後重試。');
     const target=canonicalBunjangTarget(page.body,url);
     if(target)return {target,proof:{status:'verified',method:'official_canonical',inputUrl:original.url,resolvedUrl:target.url,productId:target.id}};
-    fail('BUNJANG_LINK_UNRESOLVED','已辨識 Bunjang，但尚未能核對這種連結的商品編號，請提供完整商品頁或到 LINE 確認。');
+    fail('BUNJANG_LINK_UNRESOLVED','已辨識 Bunjang，但尚未能核對這種連結的商品編號，請貼上原平台的完整商品網址。');
   }
   fail('REDIRECT_LIMIT','商品分享連結轉址過多，請提供完整商品網址。');
 }
@@ -142,9 +142,9 @@ async function discover(target,fetchImpl,deadline,state){
     for(let hop=0;hop<3;hop++){
       page=await request(url,fetchImpl,deadline,{timeout:5000});
       if(![301,302,303,307,308].includes(page.status))break;
-      if(!page.location)fail('REDIRECT_CONFIRMATION','商品頁轉址缺少目的地，請到 LINE 確認。');
+      if(!page.location)fail('REDIRECT_CONFIRMATION','商品頁轉址缺少目的地，請重新貼上原平台的完整商品網址。');
       url=officialPageUrl(page.location,url);const next=targetFor(url);
-      if(/^\/(?:login|signup|auth)(?:\/|$)/.test(new URL(url).pathname))fail('ACCESS_RESTRICTED','商品頁需要登入，請到 LINE 確認。');
+      if(/^\/(?:login|signup|auth)(?:\/|$)/.test(new URL(url).pathname))fail('ACCESS_RESTRICTED','商品頁需要登入，請在原商品頁核對韓幣售價與運費後使用手動試算。');
       if(next.kind==='product'&&next.id!==target.id)fail('PRODUCT_MISMATCH','平台轉址指向其他商品，已停止報價。');
     }
     apiFailure(null,page.status);
@@ -171,10 +171,10 @@ async function fromApi(target,path,fetchImpl,deadline){
   for(let hop=0;hop<3;hop++){
     const response=await request(url,fetchImpl,deadline);
     if([301,302,303,307,308].includes(response.status)){
-      if(!response.location)fail('REDIRECT_CONFIRMATION','商品資料轉址缺少目的地，請到 LINE 確認。');
+      if(!response.location)fail('REDIRECT_CONFIRMATION','商品資料轉址缺少目的地，請稍後重試或重新貼上完整商品網址。');
       const next=new URL(response.location??'',url);
-      if(DOMESTIC_HOSTS.has(next.hostname)&&/^\/(?:login|signup|auth)(?:\/|$)/.test(next.pathname))fail('ACCESS_RESTRICTED','這件商品需要登入才能確認，請到 LINE 詢問。');
-      if(next.origin!==API_ORIGIN||next.username||next.password||next.search||next.hash||!new RegExp('^/api/pms/v\\d{1,3}/products/'+target.id+'/detail/web$').test(next.pathname))fail('REDIRECT_CONFIRMATION','商品資料轉址尚未通過驗證，請到 LINE 確認。');
+      if(DOMESTIC_HOSTS.has(next.hostname)&&/^\/(?:login|signup|auth)(?:\/|$)/.test(next.pathname))fail('ACCESS_RESTRICTED','這件商品需要登入才能確認，請在原商品頁核對韓幣售價與運費後使用手動試算。');
+      if(next.origin!==API_ORIGIN||next.username||next.password||next.search||next.hash||!new RegExp('^/api/pms/v\\d{1,3}/products/'+target.id+'/detail/web$').test(next.pathname))fail('REDIRECT_CONFIRMATION','商品資料轉址尚未通過驗證，請稍後重試，或核對原商品頁後使用手動試算。');
       url=next.href;continue;
     }
     let json;try{json=JSON.parse(response.body);}catch{}
@@ -192,7 +192,7 @@ async function fromReader(target,fetchImpl,deadline){
   if(response.status!==200)fail('UPSTREAM_UNAVAILABLE','商品頁的公開讀取服務暫時無法使用。');
   const parsed=parseReader(response.body,target.url,{allowMissingShipping:true});
   return {...target,...parsed,currency:'KRW',status:parsed.shippingKrw===null?'needs_confirmation':'quoted',reasonCode:parsed.shippingKrw===null?'SHIPPING_UNKNOWN':null,
-    notice:parsed.shippingKrw===null?'已依商品售價粗估，未含未確認的韓國運費；正式報價請到 LINE 確認。':'按主商品標價及一般宅配估算，款式與庫存請到 LINE 確認。',extractionSource:'bunjang_page_reader'};
+    notice:parsed.shippingKrw===null?'已依商品售價粗估，未含尚未確認的韓國境內運費；請核對原商品頁的運費後補入手動試算。':'按主商品標價及一般宅配估算；款式與庫存以原商品頁資訊為準。',extractionSource:'bunjang_page_reader'};
 }
 export async function loadBunjang(input,fetchImpl=fetch,deadline=Date.now()+48000){
   const target=targetFor(input),state=stateFor(fetchImpl);
@@ -211,7 +211,7 @@ export async function loadBunjang(input,fetchImpl=fetch,deadline=Date.now()+4800
   try{
     const fallback=await fromReader(target,fetchImpl,deadline);
     if(product){
-      if(product.priceKrw!==fallback.priceKrw)fail('PRICE_CONFLICT','兩個公開來源的商品價格不同，請稍後重試或到 LINE 確認。');
+      if(product.priceKrw!==fallback.priceKrw)fail('PRICE_CONFLICT','兩個公開來源的商品價格不同，請稍後重試，或核對原商品頁的最新售價後使用手動試算。');
       return {...product,shippingKrw:fallback.shippingKrw,status:fallback.status,reasonCode:fallback.reasonCode,notice:fallback.notice,
         extractionSource:fallback.shippingKrw!==null?'bunjang_api_with_page_shipping':product.extractionSource,
         evidence:{...product.evidence,shipping:fallback.evidence.shipping}};
@@ -221,6 +221,6 @@ export async function loadBunjang(input,fetchImpl=fetch,deadline=Date.now()+4800
     if(terminal.has(e.code))throw e;
     if(product)return product;
     if(e instanceof PlatformError||e instanceof QuoteError)throw e;
-    fail('UPSTREAM_UNAVAILABLE','平台暫時無法提供可驗證的商品資料，請稍後重試或到 LINE 確認。');
+    fail('UPSTREAM_UNAVAILABLE','平台暫時無法提供可驗證的商品資料，請稍後重試，或核對原商品頁後使用手動試算。');
   }
 }

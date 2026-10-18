@@ -3,16 +3,15 @@ import {normalize,safeImage,APP_VERSION as VERSION} from './lib/platforms.mjs';
 import {PRICING_VERSION,validateRate,FEE_TIERS} from './lib/pricing.mjs';
 import {quoteForProduct,estimateFromAmounts,estimateFormula,estimateFee} from './lib/estimate.mjs';
 import {validDomesticProof} from './lib/domestic.mjs';
-import {BRAND,CONTACT_URL,inquiryText,pendingInquiryText,chatUrl} from './lib/inquiry.mjs';
+import {quoteText,pendingProductText} from './lib/quote-text.mjs';
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('zh-TW').format(n),money=n=>'NT$ '+n.toFixed(2);
 let current=null,serial=0,controller=null,toastTimer,latestRate=null,rateRequest=null,autoQuoteTimer=null,lastUrlValue=$('url').value;
 const AUTO_QUOTE_DELAY=600;
-const isPhone=()=>/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const scrollTo=el=>el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,2800);}
-function message(){return current?(current.q?inquiryText(current.p,current.q,{manual:current.manual,note:$('requestNote').value}):pendingInquiryText(current.p,{note:$('requestNote').value})):'廢廢豬你好，我想詢問韓國代購！';}
-function updateInquiry(){if(!current)return;const text=message(),href=chatUrl(text);$('lineInquiry').href=href;$('mobileLine').href=href;$('inquiryPreview').textContent=text;$('desktopText').value=text;}
-function updateBar(){if(current){$('barHint').textContent=current.q?(current.q.shippingExcluded?'商品粗估・未含韓國運費':'預估代購金額'):'商品資訊尚待確認';$('barPrice').textContent=current.q?'NT$'+fmt(current.q.totalTwd):'讓廢廢豬幫你看';$('barAction').textContent=current.q?'帶報價詢問 ↗':'帶連結詢問 ↗';}else{$('barHint').textContent='喜歡的商品，來問廢廢豬';$('barPrice').textContent=BRAND.lineId;$('barAction').textContent='聯絡詢價 ↗';$('mobileLine').href=CONTACT_URL;}}
+function message(){return current?(current.q?quoteText(current.p,current.q,{manual:current.manual,note:$('requestNote').value}):pendingProductText(current.p,{note:$('requestNote').value})):'';}
+function updateReport(){if(current)$('quotePreview').textContent=message();}
+function updateBar(){if(current){$('barHint').textContent=current.q?(current.q.shippingExcluded?'商品粗估・未含韓國運費':'預估代購金額'):'商品資訊尚待確認';$('barPrice').textContent=current.q?'NT$'+fmt(current.q.totalTwd):'尚未產生報價';$('barAction').textContent=current.q?'複製報價':'複製商品資訊';}else{$('barHint').textContent='貼上商品網址，即可試算';$('barPrice').textContent='韓幣 → 台幣';$('barAction').textContent='開始報價';}}
 function detected(){let t;try{t=normalize($('url').value);}catch{}$('detected').hidden=!t;if(t)$('detected').textContent='✓ 已辨識 '+t.platformName+(t.market==='global'?' · 將查找韓國版原價':'')+(t.kind==='short'?' · 分享短網址':t.kind==='link'?' · 將確認商品連結':t.kind==='cart'?' · 購物車請提供個別商品':t.kind==='page'?' · 請提供單一商品頁':'');return t;}
 function cancelAutoQuote(){clearTimeout(autoQuoteTimer);autoQuoteTimer=null;}
 function autoQuoteTarget(raw){
@@ -44,8 +43,8 @@ function validBunjangLinkProof(p,input,actual){
 }
 function show(p,q,manual=false,{scroll=true}={}){
   current={p,q,manual};const excluded=q?.shippingExcluded===true,feeExcluded=q?.platformFeeExcluded===true;$('result').hidden=false;$('empty').hidden=true;
-  $('resultStatus').textContent=q?'YOUR FIND, YOUR QUOTE':'LET’S CONFIRM YOUR FIND';
-  $('tag').textContent=manual?'手動試算 · 依輸入金額計算，尚未確認原商品價格':q?'✓ '+(p.platformName||'商品')+(excluded?' · 商品粗估，未含韓國運費':' · 已取得售價與韓國運費'):(p.platformName||'商品')+' · 待廢廢豬確認';
+  $('resultStatus').textContent=q?'YOUR FIND, YOUR QUOTE':'PRODUCT DETAILS';
+  $('tag').textContent=manual?'手動試算 · 依輸入金額計算，尚未確認原商品價格':q?'✓ '+(p.platformName||'商品')+(excluded?' · 商品粗估，未含韓國運費':' · 已取得售價與韓國運費'):(p.platformName||'商品')+' · 資料待確認';
   $('tag').classList.toggle('manual-tag',manual||!q);$('title').textContent=p.title;$('source').hidden=!p.url;if(p.url)$('source').href=normalize(p.url).url;
   $('image').hidden=!safeImage(p.image);if(safeImage(p.image))$('image').src=p.image;else $('image').removeAttribute('src');
   const resolution=p.domesticResolution;
@@ -76,15 +75,15 @@ function show(p,q,manual=false,{scroll=true}={}){
   }
   document.querySelectorAll('[data-tier]').forEach(row=>row.classList.toggle('active-tier',row.dataset.tier===q?.tierId));
   $('productWarning').hidden=!q||!p.notice;if(q&&p.notice)$('productWarning').textContent=p.notice;
-  $('inquiryButtonText').textContent=q?'帶著報價，找廢廢豬詢價':'帶著連結，請廢廢豬確認';$('copy').textContent=q?'複製報價':'複製詢價內容';
+  $('copy').textContent=q?'複製報價':'複製商品資訊';
   $('time').textContent=(manual?'試算':'查詢')+'時間：'+new Date(p.fetchedAt||p.checkedAt||Date.now()).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false})+'（台灣）'+(p.fromCache?' · 短時間快取':'');
   $('discountNotice').hidden=!p.discountNotice;$('discountNotice').textContent=p.discountNotice||'';
-  updateInquiry();updateBar();updateRateDifference();if(scroll)scrollTo($('result-panel'));
+  updateReport();updateBar();updateRateDifference();if(scroll)scrollTo($('result-panel'));
 }
-function err(e){$('error').hidden=false;$('error').textContent=e.message||'目前無法取得商品資料。';let t;try{t=normalize($('url').value);}catch{}$('errorLine').hidden=!t;if(t)$('errorLine').href=chatUrl('廢廢豬你好，這個'+t.platformName+'連結想請你幫忙確認：\n'+t.url);}
+function err(e){$('error').hidden=false;$('error').textContent=e.message||'目前無法取得商品資料，請稍後重試或使用手動試算。';}
 function busy(on){$('go').disabled=on;$('go').firstElementChild.textContent=on?'廢廢豬正在讀取商品…':'幫我算台幣報價';$('progress').hidden=!on;}
-function reset(){cancelAutoQuote();serial++;if(controller)controller.abort();controller=null;$('error').hidden=true;$('errorLine').hidden=true;$('result').hidden=true;$('empty').hidden=false;$('requestNote').value='';$('resultStatus').textContent='WAITING FOR YOUR FIND';current=null;document.querySelectorAll('[data-tier]').forEach(row=>row.classList.remove('active-tier'));updateBar();busy(false);return serial;}
-$('image').onerror=()=>{$('image').hidden=true;};$('requestNote').addEventListener('input',updateInquiry);
+function reset(){cancelAutoQuote();serial++;if(controller)controller.abort();controller=null;$('error').hidden=true;$('result').hidden=true;$('empty').hidden=false;$('requestNote').value='';$('quotePreview').textContent='';$('resultStatus').textContent='WAITING FOR YOUR FIND';current=null;document.querySelectorAll('[data-tier]').forEach(row=>row.classList.remove('active-tier'));updateBar();busy(false);return serial;}
+$('image').onerror=()=>{$('image').hidden=true;};$('requestNote').addEventListener('input',updateReport);
 for(const event of ['input','change'])$('url').addEventListener(event,urlChanged);
 // Paste fires before the browser inserts clipboard text; input normally handles it immediately.
 $('url').addEventListener('paste',()=>setTimeout(urlChanged,0));
@@ -110,14 +109,13 @@ $('form').onsubmit=async e=>{
       acceptRate(d.rate);show(d.product,{...verified,rateCheckedAt:d.rate.checkedAt});
     }else if(d.status==='needs_confirmation'&&d.quote===null)show(d.product,null);
     else throw Error('回傳資料不完整，這次不會產生報價。');
-  }catch(error){if(token===serial)err(error.name==='AbortError'?Error('平台載入逾時，這次未取得價格；可重試或直接到 LINE 詢問。'):error);}
+  }catch(error){if(token===serial)err(error.name==='AbortError'?Error('平台載入逾時，這次未取得價格；請重試，或依已確認的韓幣售價使用手動試算。'):error);}
   finally{clearTimeout(timeout);if(token===serial){controller=null;busy(false);}}
 };
 $('manual').onsubmit=async e=>{e.preventDefault();const token=reset();busy(true);try{const rate=await syncRate();if(token!==serial)return;const q=estimateFromAmounts($('p').value,$('s').value,$('pf').value,rate.exchangeRate);show({title:'自訂商品',fetchedAt:new Date().toISOString()},{...q,rateCheckedAt:rate.checkedAt},true);}catch(error){if(token===serial)err(error);}finally{if(token===serial)busy(false);}};
-async function copyText(text){try{await navigator.clipboard.writeText(text);toast('已複製，可以貼到 LINE 詢價。');return true;}catch{$('copyText').value=text;if(!$('copyDialog').open)$('copyDialog').showModal();$('copyText').select();return false;}}
-$('copy').onclick=()=>current&&copyText(message());$('copyId').onclick=()=>copyText(BRAND.lineId);$('desktopCopy').onclick=()=>copyText($('desktopText').value);
-function openInquiry(e){if(!current)return;if(!isPhone()){e.preventDefault();$('desktopText').value=message();$('lineDialog').showModal();}}
-$('lineInquiry').addEventListener('click',openInquiry);$('mobileLine').addEventListener('click',openInquiry);$('showBrand').onclick=()=>$('brandDialog').showModal();
+async function copyText(text){try{await navigator.clipboard.writeText(text);toast(current?.q?'已複製報價內容。':'已複製商品資訊。');return true;}catch{$('copyText').value=text;if(!$('copyDialog').open)$('copyDialog').showModal();$('copyText').select();return false;}}
+$('copy').onclick=()=>current&&copyText(message());
+$('mobileQuoteAction').onclick=()=>{if(current)return copyText(message());scrollTo($('form'));$('url').focus({preventScroll:true});};
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
 for(const d of document.querySelectorAll('dialog'))d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}});
 $('version').textContent=VERSION;
@@ -145,7 +143,7 @@ async function syncRate(){
   if(data.version!==VERSION)throw Error('網站已更新，請重新整理後再試。');return acceptRate(data);
  })();
  try{return await rateRequest;}catch(e){
-  $('rateSyncStatus').textContent=latestRate?'暫時無法同步；最後確認匯率 '+latestRate.exchangeRate+'。新報價將重新確認。':'暫時無法同步匯率，請按「重新同步」或聯絡廢廢豬。';
+  $('rateSyncStatus').textContent=latestRate?'暫時無法同步；最後確認匯率 '+latestRate.exchangeRate+'。新報價將重新確認。':'暫時無法同步匯率，請按「重新同步」或稍後重試。';
   $('rateSyncStatus').classList.add('rate-error');throw e;
  }finally{rateRequest=null;$('refreshRate').disabled=false;}
 }

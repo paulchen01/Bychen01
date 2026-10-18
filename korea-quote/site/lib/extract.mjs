@@ -23,7 +23,7 @@ function sameUrl(v,t){try{return normalize(new URL(typeof v==='object'?v['@id']|
 function mainLD(html,t){const products=productsLD(html).filter(p=>[p.url,p.mainEntityOfPage,...arr(p.offers).map(o=>o.url)].filter(Boolean).some(u=>sameUrl(u,t)));return products.length===1?products[0]:null;}
 function base(t,fields={}){return {...t,title:t.platformName+' 商品',currency:null,priceKrw:null,shippingKrw:null,image:null,warnings:[],...fields};}
 function pending(p,msg,code='NEEDS_CONFIRMATION'){return confirmation(p,msg,code,p);}
-function ready(p){if(p.currency!=='KRW')return pending(p,'這個頁面不是已確認的韓幣售價，不能直接除以 38。請到 LINE 確認韓國採購價。','CURRENCY_NOT_KRW');if(amount(p.priceKrw)===null)return pending(p,'商品售價尚未確認，請到 LINE 詢問。','PRICE_UNKNOWN');if(amount(p.shippingKrw,true)===null)return pending(p,'已依商品售價粗估，未含韓國境內運費；實際運費與正式報價請到 LINE 確認。','SHIPPING_UNKNOWN');return {...p,status:'quoted',notice:p.warnings.join(' '),reasonCode:null};}
+function ready(p){if(p.currency!=='KRW')return pending(p,'目前未取得可核對的韓幣售價，暫不產生台幣報價。請核對原始韓幣售價與運費後使用手動試算。','CURRENCY_NOT_KRW');if(amount(p.priceKrw)===null)return pending(p,'商品售價尚未確認。請稍後重試，或核對原商品頁的韓幣售價後使用手動試算。','PRICE_UNKNOWN');if(amount(p.shippingKrw,true)===null)return pending(p,'已依商品售價粗估，未含尚未確認的韓國境內運費；請核對原商品頁的運費後補入手動試算。','SHIPPING_UNKNOWN');return {...p,status:'quoted',notice:p.warnings.join(' '),reasonCode:null};}
 function shipLD(offers){const values=[];for(const o of offers)for(const detail of arr(o.shippingDetails)){
   const countries=arr(detail.shippingDestination).flatMap(d=>arr(d.addressCountry));
   if(!countries.some(c=>['KR','KOR','South Korea','대한민국'].includes(c)))continue;
@@ -43,7 +43,7 @@ export function descriptionShipping(text){
 }
 export function parseFruits(html,input){
   const t=normalize(input),meta=metadata(html),ld=mainLD(html,t);let p=base(t);
-  if(!ld)return pending(p,'這個 FruitsFamily 頁面未提供可核對的主商品資料，請由廢廢豬確認。','PRODUCT_NOT_FOUND');
+  if(!ld)return pending(p,'這個 FruitsFamily 頁面未提供可核對的主商品資料。請稍後重試，或核對原商品頁後使用手動試算。','PRODUCT_NOT_FOUND');
   p={...p,title:clean(ld.name).slice(0,300),image:arr(ld.image).find(safeImage)||null};
   const offers=arr(ld.offers);if(!offers.length||offers.some(o=>o['@type']==='AggregateOffer'))return pending(p,'同一頁包含多種售價，請先確認款式。','PRICE_AMBIGUOUS');
   const currencies=[...new Set(offers.map(o=>o.priceCurrency))];p.currency=currencies.length===1?currencies[0]:null;
@@ -59,14 +59,14 @@ export function parseFruits(html,input){
   Object.assign(p,parsePlatformFee(ld.description));
   p.shippingKrw=shipLD(offers)??descriptionShipping(ld.description);
   p.evidence={price:'主商品 JSON-LD Offer.price：'+p.sourcePrice+' '+p.currency,shipping:p.shippingKrw===null?'主商品未提供明確境內運費':'主商品運費欄位或明確說明'};
-  p.warnings=['以頁面主商品標價估算；款式、平台另收費用及庫存由廢廢豬確認。'];
+  p.warnings=['以頁面主商品標價估算；款式、平台另收費用及庫存以原商品頁和結帳頁資訊為準。'];
   return ready(p);
 }
 export function parseZigzag(html,input){
   const t=normalize(input),state=scriptJSON(html,'__NEXT_DATA__');let p=base(t);
   const queries=state?.props?.pageProps?.dehydratedState?.queries;
   const matching=Array.isArray(queries)?queries.filter(q=>q.queryKey?.[0]==='getPdpBaseInfo'&&String(q.queryKey[1])===t.id):[];
-  if(matching.length!==1)return pending(p,'Zigzag 主商品資料尚未讀取完成；優惠價不能直接當一般售價，請到 LINE 確認。','PRODUCT_NOT_FOUND');
+  if(matching.length!==1)return pending(p,'Zigzag 主商品資料尚未讀取完成，請稍後重試，或核對原商品頁的一般售價後使用手動試算。','PRODUCT_NOT_FOUND');
   const data=matching[0].state?.data,product=data?.product;
   if(!product||String(product.id)!==t.id||!sameUrl(product.product_url,t))return pending(p,'Zigzag 商品編號未通過核對。','PRODUCT_MISMATCH');
   p={...p,title:clean((data.shop?.name?data.shop.name+' ':'')+product.name).slice(0,300),image:product.product_image_list?.map(x=>x.url||x.pdp_static_image_url).find(safeImage)||null};
@@ -76,19 +76,19 @@ export function parseZigzag(html,input){
   p.sourcePrice=normal?.price!=null&&Number.isFinite(Number(normal.price))?Number(normal.price):null;
   p.priceKrw=p.currency==='KRW'?amount(normal?.price):null;
   if(!product.is_purchasable||product.sales_status!=='ON_SALE'||product.display_status!=='VISIBLE')return pending(p,'Zigzag 商品目前未確認可購買，請先確認款式與庫存。','UNAVAILABLE_PRODUCT');
-  if(currency?.includes('~'))return pending(p,'頁面標示為起價；規格會影響價格，請到 LINE 確認款式。','STARTING_PRICE');
+  if(currency?.includes('~'))return pending(p,'頁面標示為起價；請在原商品頁選定規格並核對售價後使用手動試算。','STARTING_PRICE');
   const ship=product.shipping_fee;
   if(ship?.fee_type==='FREE'&&ship.base_fee===0)p.shippingKrw=0;
   else if(ship?.fee_type==='CHARGED'&&ship.minimum_free_shipping_fee==null)p.shippingKrw=amount(ship.base_fee,true);
   // Known conditional threshold requires explicit amount, not a marketing free-shipping string.
   else if(['CONDITIONAL_FREE','CONDITIONAL_FREE_SHIPPING','CHARGED'].includes(ship?.fee_type)&&amount(ship.minimum_free_shipping_fee)!==null&&p.priceKrw!==null)p.shippingKrw=p.priceKrw>=ship.minimum_free_shipping_fee?0:amount(ship.base_fee,true);
-  p.warnings=['按一般顯示售價估算，不含首購券、會員券或信用卡優惠；加價選項與庫存另行確認。'];
+  p.warnings=['按一般顯示售價估算，不含首購券、會員券或信用卡優惠；加價選項與庫存請依原商品頁核對。'];
   p.evidence={price:'getPdpBaseInfo['+t.id+'].product_price.display_final_price.final_price',shipping:ship?'shipping_fee：'+ship.fee_type+'，base_fee='+ship.base_fee:'未標示'};
   return ready(p);
 }
 export function parseNaver(html,input){
   const t=normalize(input);let p=base(t);const ld=mainLD(html,t);
-  if(!ld)return pending(p,'已辨識 Naver 商店，但未取得可核對的商品售價與運費；可能需要登入或頁面未公開。請到 LINE 確認。','PUBLIC_DATA_UNAVAILABLE');
+  if(!ld)return pending(p,'已辨識 Naver 商店，但未取得可核對的商品售價與運費；可能需要登入或頁面未公開。請核對原商品頁的韓幣售價與運費後使用手動試算。','PUBLIC_DATA_UNAVAILABLE');
   p={...p,title:clean(ld.name).slice(0,300),image:arr(ld.image).find(safeImage)||null};
   const offers=arr(ld.offers);
   if(offers.length!==1||offers[0]['@type']==='AggregateOffer')return pending(p,'這個 Naver 頁面有多種／比價價格，請指定賣家與商品規格。','PRICE_AMBIGUOUS');
@@ -102,7 +102,7 @@ export function parsePoca(html,input){
   const canonical=[...String(html).matchAll(/<link\b[^>]*>/gi)].map(m=>attrs(m[0])).find(a=>a.rel==='canonical')?.href;
   if(ld){p.title=clean(ld.name).slice(0,300);p.image=arr(ld.image).find(safeImage)||null;const offers=arr(ld.offers);if(offers.length===1){p.currency=offers[0].priceCurrency||null;p.sourcePrice=Number.isFinite(Number(offers[0].price))?Number(offers[0].price):null;p.priceKrw=p.currency==='KRW'?amount(offers[0].price):null;}}
   else if(sameUrl(meta['og:url']||canonical,t)){p.title=clean(meta['og:title']||p.title).slice(0,300);p.image=safeImage(meta['og:image'])?meta['og:image']:null;}
-  if(/Log in to see price|로그인.{0,15}가격/i.test(plain(html)))return pending(p,'已讀到小卡商品，但頁面要求登入後才能查看售價。本站不讀取您的帳號；請到 LINE 由廢廢豬確認採購價與運費。','PRICE_REQUIRES_LOGIN');
+  if(/Log in to see price|로그인.{0,15}가격/i.test(plain(html)))return pending(p,'已讀到小卡商品，但頁面要求登入後才能查看售價。請在原商品頁確認原始韓幣售價與運費後，使用手動試算。','PRICE_REQUIRES_LOGIN');
   if(t.market==='kr'&&ld){
     const offers=arr(ld.offers);
     if(offers.length!==1||offers[0]['@type']==='AggregateOffer')return pending(p,'韓國版有多種商品價格，請先確認規格。','PRICE_AMBIGUOUS');
@@ -114,12 +114,12 @@ export function parsePoca(html,input){
   }
   // Global Pocamarket lists amounts in USD and storage/shipping charges separately.
   // No inference from a global homepage shipping promotion or a USD amount to KRW.
-  return pending(p,'已辨識 Pocamarket 小卡市集。須確認韓國採購價、幣別與境內運費；全球站外幣價格不會直接除以 38。','CURRENCY_OR_SHIPPING_UNCONFIRMED');
+  return pending(p,'已辨識 Pocamarket 小卡市集，但原始韓幣售價或韓國境內運費尚未確認。請核對同卡韓國商品頁後使用手動試算。','CURRENCY_OR_SHIPPING_UNCONFIRMED');
 }
 export function parseXEmbed(payload,input){
   const t=normalize(input);let p=base(t,{title:'X／Twitter 公開貼文'});let data=payload;
-  if(typeof data==='string'){try{data=JSON.parse(data);}catch{return pending(p,'公開貼文目前無法讀取，請將連結帶到 LINE 詢問。','PUBLIC_DATA_UNAVAILABLE');}}
-  if(!data?.html||!data.url||!sameUrl(data.url,t))return pending(p,'無法核對這則公開貼文，請到 LINE 確認。','PRODUCT_MISMATCH');
+  if(typeof data==='string'){try{data=JSON.parse(data);}catch{return pending(p,'公開貼文目前無法讀取，請稍後重試，或核對原貼文的韓幣售價與運費後使用手動試算。','PUBLIC_DATA_UNAVAILABLE');}}
+  if(!data?.html||!data.url||!sameUrl(data.url,t))return pending(p,'無法核對這則公開貼文，請貼上原平台的完整貼文網址。','PRODUCT_MISMATCH');
   const match=data.html.match(/<blockquote\b[^>]*>([\s\S]*?)<\/blockquote>/i),text=match?.[1].match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1];
   if(!text)return pending(p,'沒有取得可解析的公開貼文內容。','PUBLIC_DATA_UNAVAILABLE');
   const content=clean(text);p.title=content.split('\n').find(Boolean)?.slice(0,160)||p.title;p.postExcerpt=content.slice(0,700);
@@ -133,5 +133,5 @@ export function parseXEmbed(payload,input){
   }
   // A post is not a structured product listing. Even explicit numbers can denote
   // multiple cards, a want-to-buy budget or deposits. Retain source, request confirmation.
-  return pending(p,'已讀取公開貼文。推文可能含多款商品、收購價或圖片價，需由廢廢豬確認售價與運費，不會自動猜價。','SOCIAL_POST_CONFIRMATION');
+  return pending(p,'已讀取公開貼文，但未確認單一商品的韓幣售價與運費；多款商品、收購價或圖片價無法直接報價。請核對原貼文後使用手動試算。','SOCIAL_POST_CONFIRMATION');
 }
