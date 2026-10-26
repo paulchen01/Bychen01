@@ -11,8 +11,16 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Apply guarded link-only patch
-        run: node korea-quote/scripts/prepare-bunjang-links-v24.mjs
+      - name: Apply guarded link-only patch and align asset-version assertions
+        run: |
+          node korea-quote/scripts/prepare-bunjang-links-v24.mjs
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import assert from 'node:assert/strict';
+          const file='korea-quote/site/tests/auto-quote.test.mjs',s=fs.readFileSync(file,'utf8');
+          assert.equal((s.match(/20261019-23/g)||[]).length,3);
+          assert.equal((s.match(/2026-10-19\.23/g)||[]).length,1);
+          fs.writeFileSync(file,s.replaceAll('20261019-23','20261026-24').replaceAll('2026-10-19.23','2026-10-26.24'));
+          JS
       - name: Run all existing and additional regression tests
         working-directory: korea-quote/site
         run: |
