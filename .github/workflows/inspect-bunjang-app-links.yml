@@ -1,0 +1,38 @@
+name: Inspect Bunjang app links
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/inspect-bunjang-app-links.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Inspect official public link metadata only
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const report={checkedAt:new Date().toISOString(),sources:[]};
+          const urls=['https://korea-quote-0908.vercel.app/api/health','https://korea-quote-0908.vercel.app/','https://korea-quote-0908.vercel.app/app.js','https://m.bunjang.co.kr/products/386933481','https://m.bunjang.co.kr/','https://m.bunjang.co.kr/.well-known/apple-app-site-association','https://m.bunjang.co.kr/.well-known/assetlinks.json'];
+          let scripts=[];
+          for(let i=0;i<urls.length;i++){
+            const url=urls[i];try{const r=await fetch(url,{signal:AbortSignal.timeout(12000)}),text=await r.text();fs.writeFileSync('evidence/source-'+i+'.txt',text);const item={url,finalUrl:r.url,status:r.status,bytes:text.length};if(i===0)item.health=JSON.parse(text);if(i>=3){item.links=[...text.matchAll(/.{0,120}(?:bunjang:\/\/|intent:\/\/|al:ios|al:android|app-argument|deeplink|deep_link|applinks|package_name|onelink).{0,180}/gi)].slice(0,40).map(m=>m[0]);if(i===3||i===4){scripts.push(...[...text.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>new URL(m[1],r.url).href));}}report.sources.push(item);}catch(e){report.sources.push({url,error:e.message});}
+          }
+          scripts=[...new Set(scripts)].filter(s=>/^https:\/\/(?:[^/]+\.)?bunjang\.co\.kr\//.test(s)).slice(0,6);
+          for(let i=0;i<scripts.length;i++){const url=scripts[i];try{const r=await fetch(url,{signal:AbortSignal.timeout(15000)}),text=await r.text();fs.writeFileSync('evidence/script-'+i+'.js',text);report.sources.push({url,status:r.status,bytes:text.length,links:[...text.matchAll(/.{0,170}(?:bunjang:\/\/|intent:\/\/|bunjangapp|deep_link|deeplink|appScheme|onelink|kr\.co\.quicket|app-argument).{0,260}/gi)].slice(0,80).map(m=>m[0])});}catch(e){report.sources.push({url,error:e.message});}}
+          fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bunjang-app-link-inspection
+          path: |
+            evidence/
+            korea-quote/site/
+            korea-quote/scripts/
+          retention-days: 7
