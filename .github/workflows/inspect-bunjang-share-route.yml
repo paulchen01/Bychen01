@@ -9,14 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Read official product sharing response
+      - name: Read official product deep link metadata
         run: |
           mkdir -p evidence
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          const endpoint='https://api.bunjang.co.kr/api/shortlink/v1/short-links/product',report=[];
-          for(const pid of [386933481,423628860]){
-            try{const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json',Origin:'https://m.bunjang.co.kr',Referer:'https://m.bunjang.co.kr/'},body:JSON.stringify({pid}),signal:AbortSignal.timeout(12000)}),text=await r.text();fs.writeFileSync('evidence/share-'+pid+'.json',text);const row={pid,status:r.status,response:text};report.push(row);let d;try{d=JSON.parse(text)}catch{}const url=d?.shortLink;if(!url||new URL(url).hostname!=='go.bgzt.link')continue;const a=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'},signal:AbortSignal.timeout(15000)}),html=await a.text();fs.writeFileSync('evidence/landing-'+pid+'.html',html);row.landing={url:a.url,status:a.status,hits:[...html.matchAll(/.{0,100}(?:bunjang|deepLink|deeplink|scheme|intent|386933481|423628860).{0,250}/gi)].slice(0,65).map(m=>m[0])};}catch(e){report.push({pid,error:e.message})}
+          const report=[];
+          for(const url of ['https://go.bgzt.link/remg97j','https://go.bgzt.link/mendsu7']){
+            try{const r=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'},redirect:'manual',signal:AbortSignal.timeout(15000)}),html=await r.text();fs.writeFileSync('evidence/'+new URL(url).pathname.slice(1)+'.html',html);report.push({url,status:r.status,location:r.headers.get('location'),hits:[...html.matchAll(/.{0,100}(?:bunjang|deepLink|deeplink|scheme|intent|386933481|423628860).{0,300}/gi)].slice(0,80).map(m=>m[0])});}catch(e){report.push({url,error:e.message})}
           }fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
           JS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
