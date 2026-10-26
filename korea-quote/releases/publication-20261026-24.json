@@ -1,0 +1,57 @@
+{
+  "version": "2026-10-26.24",
+  "project": "korea-quote-0908",
+  "projectId": "prj_sabana6oVOczjgxMho8AWlIvCRku",
+  "teamId": "team_XfmijK1DUR1v5EUqdAPtT8I6",
+  "deploymentId": "dpl_Eq15Z6d99xoKGeY5jsjB45WE1WAR",
+  "sourceCommit": "f52519356125054fb4888c805d45ce26418517ab",
+  "target": "production",
+  "state": "READY",
+  "canonicalUrl": "https://korea-quote-0908.vercel.app/",
+  "canonicalAliasAssigned": true,
+  "aliasError": null,
+  "productionDeployed": true,
+  "verificationScope": "Vercel deployment state, production alias, live homepage HTML, live health API, live Bunjang quote API and outbound-link module. No new rendered-browser or native-device test in this publication step.",
+  "liveChecks": {
+    "health": {
+      "httpStatus": 200,
+      "version": "2026-10-26.24",
+      "pricingVersion": "2026-09-15.5",
+      "exchangeRate": 38,
+      "source": "google_sheets",
+      "cell": "B2",
+      "rateCheckedAt": "2026-10-26T15:30:20.866Z",
+      "fixedFeeMaxKrw": 25000,
+      "percent8MinKrw": 25001
+    },
+    "homepage": {
+      "httpStatus": 200,
+      "assetVersion": "20261026-24",
+      "containsAppEntry": true,
+      "containsCopyDomesticLinkButton": true,
+      "observedAt": "2026-10-26T15:30:42Z"
+    },
+    "outboundLinkModule": {
+      "httpStatus": 200,
+      "domesticWeb": "https://m.bunjang.co.kr/products/{id}",
+      "nativeApp": "bunjang://product?val={id}",
+      "androidIntent": "intent://product?val={id}#Intent;scheme=bunjang;package=kr.co.quicket;end",
+      "validatesSameProductId": true,
+      "dropsInputQueryParameters": true,
+      "observedAt": "2026-10-26T15:31:36Z"
+    },
+    "bunjangProduct386933481": {
+      "httpStatus": 200,
+      "version": "2026-10-26.24",
+      "status": "needs_confirmation",
+      "reasonCode": "UNAVAILABLE_PRODUCT",
+      "priceKrw": null,
+      "quote": null,
+      "checkedAt": "2026-10-26T15:31:09.753Z",
+      "note": "This sample is unavailable for sale according to the quote API; no live price or total was claimed."
+    }
+  },
+  "candidateUiEvidence": "candidate-bunjang-links-20261026-24.json",
+  "nativeDeviceVerified": false,
+  "nativeDeviceNote": "Installed Korean Bunjang app and browser approval are required; actual on-device handoff remains for the user to confirm."
+}
