@@ -1,0 +1,27 @@
+name: Verify Bunjang product app route
+on:
+  push:
+    paths: ['.github/workflows/inspect-bunjang-product-link.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read official product script and nearby dependencies
+        run: |
+          mkdir -p evidence
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const root='https://m.bunjang.co.kr/static/js/',urls=[root+'index.route.Dp_lDk1w.chunk.js'],report=[];
+          for(let i=0;i<urls.length&&i<16;i++){
+            const url=urls[i];try{const r=await fetch(url,{signal:AbortSignal.timeout(12000)}),text=await r.text();fs.writeFileSync('evidence/chunk-'+i+'.js',text);const hits=[...text.matchAll(/.{0,170}(?:goToProduct|generateDeepLink|bunjang:\/\/|intent:\/\/|deepLink|deeplink|shortLink).{0,350}/g)].slice(0,40).map(m=>m[0]);report.push({url,status:r.status,hits});if(i===0){const deps=[...text.matchAll(/from["']\.\/([^"']+\.js)["']/g)].map(m=>root+m[1]).filter(s=>!s.includes('/index.C2o'));urls.push(...new Set(deps));}}catch(e){report.push({url,error:e.message});}
+          }
+          fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bunjang-product-app-route
+          path: evidence/
+          retention-days: 7
