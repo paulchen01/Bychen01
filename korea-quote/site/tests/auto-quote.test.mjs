@@ -275,10 +275,10 @@ test('the existing Naver short-link behavior still accepts its resolved product'
 
 test('the page advertises automatic lookup and references the new release assets',()=>{
   assert.ok(HTML.includes('貼上完整商品連結，即可自動查價。'));
-  assert.ok(HTML.includes('/app.js?v=20261019-23'));
-  assert.ok(HTML.includes('/smartstore-beta.js?v=20261019-23'));
-  assert.ok(HTML.includes('/style.css?v=20261019-23'));
-  assert.ok(HTML.includes('<span id="version">2026-10-19.23</span>'));
+  assert.ok(HTML.includes('/app.js?v=20261026-24'));
+  assert.ok(HTML.includes('/smartstore-beta.js?v=20261026-24'));
+  assert.ok(HTML.includes('/style.css?v=20261026-24'));
+  assert.ok(HTML.includes('<span id="version">2026-10-26.24</span>'));
 });
 
 test('the initial mobile quote action focuses the product input without a request or navigation',async t=>{
@@ -434,4 +434,32 @@ test('all public HTML and active assets are free of the old contact links and QR
   for(const asset of ['assets/line-qr.png','assets/brand.webp']){
     assert.equal(existsSync(path.join(ROOT,asset)),false,'Legacy contact artwork must not be included: '+asset);
   }
+});
+
+for(const [ua,prefix] of [['iPhone','bunjang://product?val='],['Android 14','intent://product?val=']])test('Bunjang app entry is user-initiated and keeps the product on '+ua,async t=>{
+ const h=await harness(t);Object.defineProperty(h.w.navigator,'userAgent',{value:ua});
+ h.enter(A+'?currency=USD&lang=en');await h.advance(600);h.requests[0].respond(quoted(A+'?currency=USD&lang=en'));await flush();
+ assert.equal(h.$('bunjangApp').hidden,false);assert.ok(h.$('bunjangApp').href.startsWith(prefix+'386933481'));
+ assert.equal(h.$('bunjangApp').hasAttribute('target'),false);assert.equal(h.$('source').href,A);
+ assert.equal(h.$('source').textContent,'韓國版網頁 ↗');assert.equal(h.$('originalSource').hidden,true);assert.equal(h.$('originalSource').hasAttribute('href'),false);
+ assert.equal(h.$('total').textContent,'393');assert.equal(h.w.location.hostname,'korea-quote-0908.vercel.app');
+ h.$('bunjangCopy').click();await flush();assert.equal(h.copied[0],A);assert.equal(h.$('toast').textContent,'已複製韓國版商品連結。');
+ assert.ok(!h.$('quotePreview').textContent.includes('currency=USD'));
+ h.$('bunjangApp').addEventListener('click',e=>e.preventDefault());h.$('bunjangApp').click();assert.match(h.$('bunjangOpenHelp').textContent,/Safari／Chrome/);
+ await h.advance(5000);assert.equal(h.w.location.hostname,'korea-quote-0908.vercel.app');assert.equal(h.$('total').textContent,'393');
+});
+test('app links are cleared when switching or manually quoting',async t=>{
+ const h=await harness(t);h.enter(A);await h.advance(600);h.requests[0].respond(quoted());await flush();
+ h.enter(B);assert.equal(h.$('bunjangApp').hidden,true);assert.equal(h.$('bunjangApp').hasAttribute('href'),false);
+ await h.advance(600);h.requests[1].respond(quoted(B));await flush();assert.equal(h.$('bunjangApp').href,'bunjang://product?val=386933482');
+ h.$('p').value='25000';h.$('s').value='0';h.$('pf').value='0';h.event('manual','submit');await flush();
+ assert.equal(h.$('bunjangApp').hidden,true);assert.equal(h.$('bunjangCopy').hidden,true);assert.equal(h.$('bunjangOpenHelp').hidden,true);assert.equal(h.$('total').textContent,'708');
+});
+test('other platforms keep their own product links',async t=>{
+ const h=await harness(t),url='https://www.musinsa.com/products/1234567';h.enter(url);await h.advance(600);h.requests[0].respond(quoted(url));await flush();
+ assert.equal(h.$('bunjangApp').hidden,true);assert.equal(h.$('bunjangCopy').hidden,true);assert.equal(h.$('source').href,url);assert.equal(h.$('source').textContent,'查看原商品 ↗');
+});
+test('Korean link copy has a selectable clipboard fallback',async t=>{
+ const h=await harness(t,'',{clipboardAvailable:false});h.enter(A);await h.advance(600);h.requests[0].respond(quoted());await flush();
+ h.$('bunjangCopy').click();await flush();assert.equal(h.$('copyDialog').open,true);assert.equal(h.$('copyText').value,A);assert.equal(h.$('total').textContent,'393');
 });

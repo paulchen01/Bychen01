@@ -1,5 +1,14 @@
 # 廢廢豬韓國代購報價系統
 
+## v24 韓國 App 商品開啟（候選，尚待正式發布）
+
+新增「韓國 App 開啟」、乾淨的韓國網頁與複製連結。Bunjang 結果不再顯示國際版原連結，複製報價同步清理幣別／語言／追蹤參數。所有連結使用同一商品編號。價格、運費、匯率及代購費邏輯保持原樣。
+
+官方依據（2026-10-26）：主程式 https://m.bunjang.co.kr/static/js/index.C2oRMW-u.js 的 bunjang:// 與 goToProduct；官方商品分享連結 https://go.bgzt.link/remg97j 與 https://go.bgzt.link/mendsu7 分別轉向 https://bunjang.airbridge.io/goto?type=product&val=386933481 與 val=423628860（省略追蹤參數）；https://m.bunjang.co.kr/.well-known/assetlinks.json 宣告 Android 套件 kr.co.quicket。本站直接使用 product 路由及 val，不依賴臨時分享連結，也不自動轉往全球版。
+
+原生 App 接管仍需手機已安裝韓國版 App 並允許瀏覽器開啟；模擬瀏覽器測試不等於真實手機 App 驗證。發布使用 node korea-quote/scripts/release.mjs，逐檔比對 v23 保留計算與資料來源。
+
+
 本目錄是可直接維護與測試的網站來源，從既有 `site-20260915-20.json` 核對 SHA-256 後還原。2026-10-19 更新版本為 **2026-10-19.23（純報價版）**。原始歷次發布檔與驗收紀錄保留於 `../releases/`。
 
 ## v23 純報價版

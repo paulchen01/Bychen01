@@ -9,7 +9,7 @@
 <meta property="og:title" content="廢廢豬韓國報價｜韓國商品查價・台幣估算">
 <meta property="og:description" content="貼上韓國商品網址，自動查詢公開韓幣售價，依本日匯率、已知運費與費用規則估算台幣。支援手動計算、報價備註與複製明細。">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css?v=20261019-23">
+<link rel="stylesheet" href="/style.css?v=20261026-24">
 <link rel="preload" href="/assets/quote-mark.svg" as="image">
 <link rel="canonical" href="https://korea-quote-0908.vercel.app/">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
@@ -94,7 +94,12 @@
 <div class="product-head">
 <img id="image" alt="商品圖片" hidden="" referrerpolicy="no-referrer"><div>
 <h4 id="title"></h4>
+<div class="product-link-actions">
+<a id="bunjangApp" class="bunjang-app" aria-describedby="bunjangOpenHelp" hidden>韓國 App 開啟 ↗</a>
 <a id="source" class="source" target="_blank" rel="noopener noreferrer">查看原商品 ↗</a>
+<button id="bunjangCopy" class="bunjang-copy" type="button" hidden>複製韓國版連結</button>
+</div>
+<p id="bunjangOpenHelp" class="bunjang-open-help" role="status" hidden></p>
 </div>
 </div>
 <div id="domesticProof" class="domestic-proof" hidden="">
@@ -210,7 +215,7 @@
 <b>廢廢豬</b><span>fat fat pig · 韓國報價</span>
 </div>
 <p>本網站提供韓國商品公開查價與台幣試算，非各購物平台官方服務。</p>
-<small>版本 v<span id="version">2026-10-19.23</span> · Take your time. Know your price.</small></footer>
+<small>版本 v<span id="version">2026-10-26.24</span> · Take your time. Know your price.</small></footer>
 </div>
 <div class="mobile-bar">
 <div>
@@ -220,6 +225,6 @@
 </div>
 <div id="toast" class="toast" role="status" hidden=""></div>
 <dialog id="copyDialog"><button class="dialog-close" data-close="copyDialog" aria-label="關閉">×</button><h3>長按文字即可複製</h3>
-<textarea id="copyText" readonly aria-label="可複製的報價明細"></textarea><button class="button primary" data-close="copyDialog">完成</button></dialog><script type="module" src="/app.js?v=20261019-23"></script><script src="/smartstore-beta.js?v=20261019-23" defer></script>
+<textarea id="copyText" readonly aria-label="可複製的報價明細"></textarea><button class="button primary" data-close="copyDialog">完成</button></dialog><script type="module" src="/app.js?v=20261026-24"></script><script src="/smartstore-beta.js?v=20261026-24" defer></script>
 </body>
 </html>

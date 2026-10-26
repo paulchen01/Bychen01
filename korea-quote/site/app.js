@@ -1,3 +1,4 @@
+import {bunjangLinks} from './lib/bunjang-links.mjs';
 import {platformFeeText} from './lib/platform-fee.mjs';
 import {normalize,safeImage,APP_VERSION as VERSION} from './lib/platforms.mjs';
 import {PRICING_VERSION,validateRate,FEE_TIERS} from './lib/pricing.mjs';
@@ -41,6 +42,21 @@ function validBunjangLinkProof(p,input,actual){
       &&(!p.priceSourceUrl||normalize(p.priceSourceUrl).url===actual.url);
   }catch{return false;}
 }
+function clearBunjangLinks(){
+  for(const id of ['bunjangApp','bunjangCopy','bunjangOpenHelp'])$(id).hidden=true;
+  $('bunjangApp').removeAttribute('href');$('bunjangCopy').removeAttribute('data-url');
+}
+function showBunjangLinks(product){
+  clearBunjangLinks();
+  const links=bunjangLinks(product,navigator.userAgent);
+  if(!links)return;
+  $('source').href=links.web;$('source').textContent='韓國版網頁 ↗';
+  $('bunjangApp').href=links.app;$('bunjangApp').hidden=false;
+  $('bunjangCopy').dataset.url=links.web;$('bunjangCopy').hidden=false;
+  $('bunjangOpenHelp').hidden=false;
+  $('bunjangOpenHelp').textContent='已安裝韓國版 번개장터？請點「韓國 App 開啟」，並允許開啟 App。網頁若轉為 USD，請改用 App 核對韓幣價格。';
+  $('originalSource').hidden=true;$('originalSource').removeAttribute('href');
+}
 function show(p,q,manual=false,{scroll=true}={}){
   current={p,q,manual};const excluded=q?.shippingExcluded===true,feeExcluded=q?.platformFeeExcluded===true;$('result').hidden=false;$('empty').hidden=true;
   $('resultStatus').textContent=q?'YOUR FIND, YOUR QUOTE':'PRODUCT DETAILS';
@@ -54,6 +70,7 @@ function show(p,q,manual=false,{scroll=true}={}){
   $('source').textContent=resolution?.status==='verified'?'查看韓國版原商品 ↗':'查看原商品 ↗';
   $('originalSource').hidden=resolution?.status!=='verified'||!p.originalUrl||p.originalUrl===p.url;
   if(!$('originalSource').hidden)$('originalSource').href=normalize(p.originalUrl).url;
+  showBunjangLinks(p);
   $('quoteComplete').hidden=!q;$('pendingBlock').hidden=!!q;
   if(q){
     $('total').textContent=fmt(q.totalTwd);$('price').textContent='₩'+fmt(q.priceKrw);$('shipping').textContent=excluded?'未標示，本次未計入':'₩'+fmt(q.shippingKrw)+(q.shippingKrw===0?'（免運）':'');
@@ -82,7 +99,7 @@ function show(p,q,manual=false,{scroll=true}={}){
 }
 function err(e){$('error').hidden=false;$('error').textContent=e.message||'目前無法取得商品資料，請稍後重試或使用手動試算。';}
 function busy(on){$('go').disabled=on;$('go').firstElementChild.textContent=on?'廢廢豬正在讀取商品…':'幫我算台幣報價';$('progress').hidden=!on;}
-function reset(){cancelAutoQuote();serial++;if(controller)controller.abort();controller=null;$('error').hidden=true;$('result').hidden=true;$('empty').hidden=false;$('requestNote').value='';$('quotePreview').textContent='';$('resultStatus').textContent='WAITING FOR YOUR FIND';current=null;document.querySelectorAll('[data-tier]').forEach(row=>row.classList.remove('active-tier'));updateBar();busy(false);return serial;}
+function reset(){clearBunjangLinks();cancelAutoQuote();serial++;if(controller)controller.abort();controller=null;$('error').hidden=true;$('result').hidden=true;$('empty').hidden=false;$('requestNote').value='';$('quotePreview').textContent='';$('resultStatus').textContent='WAITING FOR YOUR FIND';current=null;document.querySelectorAll('[data-tier]').forEach(row=>row.classList.remove('active-tier'));updateBar();busy(false);return serial;}
 $('image').onerror=()=>{$('image').hidden=true;};$('requestNote').addEventListener('input',updateReport);
 for(const event of ['input','change'])$('url').addEventListener(event,urlChanged);
 // Paste fires before the browser inserts clipboard text; input normally handles it immediately.
@@ -113,8 +130,13 @@ $('form').onsubmit=async e=>{
   finally{clearTimeout(timeout);if(token===serial){controller=null;busy(false);}}
 };
 $('manual').onsubmit=async e=>{e.preventDefault();const token=reset();busy(true);try{const rate=await syncRate();if(token!==serial)return;const q=estimateFromAmounts($('p').value,$('s').value,$('pf').value,rate.exchangeRate);show({title:'自訂商品',fetchedAt:new Date().toISOString()},{...q,rateCheckedAt:rate.checkedAt},true);}catch(error){if(token===serial)err(error);}finally{if(token===serial)busy(false);}};
-async function copyText(text){try{await navigator.clipboard.writeText(text);toast(current?.q?'已複製報價內容。':'已複製商品資訊。');return true;}catch{$('copyText').value=text;if(!$('copyDialog').open)$('copyDialog').showModal();$('copyText').select();return false;}}
+async function copyText(text,successMessage){try{await navigator.clipboard.writeText(text);toast(successMessage||(current?.q?'已複製報價內容。':'已複製商品資訊。'));return true;}catch{$('copyText').value=text;if(!$('copyDialog').open)$('copyDialog').showModal();$('copyText').select();return false;}}
 $('copy').onclick=()=>current&&copyText(message());
+$('bunjangCopy').onclick=()=>{const links=current&&bunjangLinks(current.p,navigator.userAgent);if(links)return copyText(links.web,'已複製韓國版商品連結。');};
+// Native navigation is a direct user click. Never use delayed web/USD redirects.
+$('bunjangApp').addEventListener('click',()=>{
+  $('bunjangOpenHelp').textContent='請允許瀏覽器開啟韓國版 번개장터。若沒有反應，請在 Safari／Chrome 開啟本站後再按一次；不會自動改開美元版。';
+});
 $('mobileQuoteAction').onclick=()=>{if(current)return copyText(message());scrollTo($('form'));$('url').focus({preventScroll:true});};
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
 for(const d of document.querySelectorAll('dialog'))d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}});

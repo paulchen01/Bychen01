@@ -1,3 +1,4 @@
+import {bunjangLinks} from './bunjang-links.mjs';
 import {platformFeeText} from './platform-fee.mjs';
 import {validDomesticProof} from './domestic.mjs';
 import {normalize} from './platforms.mjs';
@@ -13,7 +14,7 @@ export function quoteText(product,quote,{manual=false,note=''}={}){
   if(product.domesticResolution&&!validDomesticProof(product))throw new Error('韓國版來源未通過核對，不能產生報價內容。');
   const checked=verifiedCalculation(quote);
   if(checked.totalTwd!==quote.totalTwd)throw new Error('報價與計算規則不一致。');
-  const excluded=quote.shippingExcluded===true,url=product.url?normalize(product.url).url:'';
+  const excluded=quote.shippingExcluded===true,url=product.url?(bunjangLinks(product)?.web||normalize(product.url).url):'';
   const stamp=localTime(product.fetchedAt||product.checkedAt),rateStamp=localTime(quote.rateCheckedAt);
   return [
     '廢廢豬｜韓國商品報價',
@@ -22,7 +23,7 @@ export function quoteText(product,quote,{manual=false,note=''}={}){
     '商品：'+singleLine(product.title||'自訂商品'),
     url?'商品連結：'+url:'',
     product.domesticResolution?.status==='verified'?'價格來源：同款韓國國內版原價 KRW（非美元換算）':'',
-    product.domesticResolution?.status==='verified'&&product.originalUrl&&product.originalUrl!==url?'原始連結：'+normalize(product.originalUrl).url:'',
+    !bunjangLinks(product)&&product.domesticResolution?.status==='verified'&&product.originalUrl&&product.originalUrl!==url?'原始連結：'+normalize(product.originalUrl).url:'',
     '商品金額：₩'+fmt(checked.priceKrw),
     excluded?'韓國境內運費：未標示，本次未計入':'韓國境內運費：₩'+fmt(checked.shippingKrw),
     '韓國平台手續費：'+platformFeeText(quote.platformFeeKrw),
@@ -49,7 +50,7 @@ export function pendingProductText(product,{note=''}={}){
     '【資料待確認，尚未產生台幣報價】',
     '平台：'+target.platformName,
     '商品：'+singleLine(product.title||target.platformName+' 商品'),
-    '商品連結：'+target.url,
+    '商品連結：'+(bunjangLinks(product)?.web||target.url),
     '頁面商品金額：'+price,
     '韓國境內運費：'+(Number.isSafeInteger(product.shippingKrw)?'₩'+fmt(product.shippingKrw):'待確認'),
     '韓國平台手續費：'+platformFeeText(product.platformFeeKrw),

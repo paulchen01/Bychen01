@@ -1,0 +1,45 @@
+{
+  "version": "2026-10-26.24",
+  "productionDeployed": false,
+  "nativeDeviceVerified": false,
+  "scope": "candidate Chromium UI with synthetic product/rate data; native links inspected, not launched",
+  "browser": [
+    {
+      "width": 320,
+      "userAgent": "iPhone",
+      "appLink": "bunjang://product?val=386933481",
+      "webLink": "https://m.bunjang.co.kr/products/386933481",
+      "copyPassed": true,
+      "rateSynchronizationPreserved": true,
+      "noOverflow": true
+    },
+    {
+      "width": 393,
+      "userAgent": "iPhone",
+      "appLink": "bunjang://product?val=386933481",
+      "webLink": "https://m.bunjang.co.kr/products/386933481",
+      "copyPassed": true,
+      "rateSynchronizationPreserved": true,
+      "noOverflow": true
+    },
+    {
+      "width": 393,
+      "userAgent": "Android 14",
+      "appLink": "intent://product?val=386933481#Intent;scheme=bunjang;package=kr.co.quicket;end",
+      "webLink": "https://m.bunjang.co.kr/products/386933481",
+      "copyPassed": true,
+      "rateSynchronizationPreserved": true,
+      "noOverflow": true
+    },
+    {
+      "width": 1440,
+      "userAgent": "desktop",
+      "appLink": "bunjang://product?val=386933481",
+      "webLink": "https://m.bunjang.co.kr/products/386933481",
+      "copyPassed": true,
+      "rateSynchronizationPreserved": true,
+      "noOverflow": true
+    }
+  ],
+  "passed": true
+}
