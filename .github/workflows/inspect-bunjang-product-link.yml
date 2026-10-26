@@ -9,14 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Read official product script and nearby dependencies
+      - name: Read official navigation helpers
         run: |
           mkdir -p evidence
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          const root='https://m.bunjang.co.kr/static/js/',urls=[root+'index.route.Dp_lDk1w.chunk.js'],report=[];
-          for(let i=0;i<urls.length&&i<16;i++){
-            const url=urls[i];try{const r=await fetch(url,{signal:AbortSignal.timeout(12000)}),text=await r.text();fs.writeFileSync('evidence/chunk-'+i+'.js',text);const hits=[...text.matchAll(/.{0,170}(?:goToProduct|generateDeepLink|bunjang:\/\/|intent:\/\/|deepLink|deeplink|shortLink).{0,350}/g)].slice(0,40).map(m=>m[0]);report.push({url,status:r.status,hits});if(i===0){const deps=[...text.matchAll(/from["']\.\/([^"']+\.js)["']/g)].map(m=>root+m[1]).filter(s=>!s.includes('/index.C2o'));urls.push(...new Set(deps));}}catch(e){report.push({url,error:e.message});}
+          const root='https://m.bunjang.co.kr/static/js/',files=['product.WN5yGaAz.chunk.js','resolve-text-link.CNCSEKhl.chunk.js','AppNudgePopup.aWHNtYHM.chunk.js','useDotButton.BYvrybDZ.chunk.js','index.CvbFdxMw.chunk.js','index.DpaUn-yG.chunk.js','index.sJpCHpyU.chunk.js','index.CTIuay0X.chunk.js','chunk.BN1TkZLu.chunk.js'],report=[];
+          for(let i=0;i<files.length;i++){
+            const url=root+files[i];try{const r=await fetch(url,{signal:AbortSignal.timeout(12000)}),text=await r.text();fs.writeFileSync('evidence/chunk-'+i+'.js',text);const hits=[...text.matchAll(/.{0,200}(?:goToProduct|generateDeepLink|bunjang:\/\/|intent:\/\/|deepLink|deeplink|shortLink|val:).{0,400}/g)].slice(0,40).map(m=>m[0]);report.push({url,status:r.status,hits});}catch(e){report.push({url,error:e.message});}
           }
           fs.writeFileSync('evidence/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
           JS
