@@ -1,0 +1,81 @@
+name: Prepare Korean Bunjang app links v24
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-bunjang-links-v24.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Apply guarded link-only patch
+        run: node korea-quote/scripts/prepare-bunjang-links-v24.mjs
+      - name: Run all existing and additional regression tests
+        working-directory: korea-quote/site
+        run: |
+          mkdir -p evidence
+          npm ci --ignore-scripts --no-audit --no-fund
+          set -o pipefail
+          npm test | tee evidence/tests.txt
+          npm run build
+      - name: Validate release has not changed pricing or fetching
+        run: |
+          node korea-quote/scripts/release.mjs
+          node korea-quote/scripts/release.mjs --check
+      - name: Install isolated browser tooling
+        run: |
+          npm install --prefix /tmp/pig-browser --ignore-scripts --no-audit --no-fund playwright@1.55.1
+          sudo apt-get update -qq
+          sudo apt-get install -y fonts-noto-cjk > /dev/null
+      - name: Check candidate mobile and desktop link UI
+        working-directory: korea-quote/site
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import path from 'node:path';import http from 'node:http';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
+          import {normalize,APP_VERSION} from './lib/platforms.mjs';import {quoteForProduct} from './lib/estimate.mjs';
+          const {chromium}=createRequire('/tmp/pig-browser/package.json')('playwright');
+          const report={version:APP_VERSION,productionDeployed:false,nativeDeviceVerified:false,scope:'candidate Chromium UI; native links inspected but not launched',browser:[]};
+          let rate=38;const A='https://m.bunjang.co.kr/products/386933481';
+          const rateData=()=>({exchangeRate:rate,checkedAt:new Date().toISOString(),source:'google_sheets'});
+          const server=http.createServer((req,res)=>{try{const u=new URL(req.url,'http://127.0.0.1:8765');
+            if(u.pathname==='/api/rate'){res.setHeader('content-type','application/json');return res.end(JSON.stringify({ok:true,version:APP_VERSION,...rateData()}));}
+            if(u.pathname==='/api/quote'){const t=normalize(u.searchParams.get('url')),p={...t,url:A,title:'閃電拍賣｜商品開啟測試',currency:'KRW',priceKrw:64000,shippingKrw:0,platformFeeKrw:null,originalUrl:t.url,fetchedAt:new Date().toISOString()},q=quoteForProduct(p,rate);res.setHeader('content-type','application/json');return res.end(JSON.stringify({ok:true,version:APP_VERSION,status:'estimated',product:p,quote:q,rate:rateData()}));}
+            const rel=u.pathname==='/'?'index.html':u.pathname.slice(1);if(rel.includes('..'))throw Error('Invalid path');const file=path.join('.vercel/output/static',rel),types={'.js':'application/javascript','.mjs':'application/javascript','.html':'text/html','.css':'text/css','.svg':'image/svg+xml'};res.setHeader('content-type',types[path.extname(file)]||'text/plain');res.end(fs.readFileSync(file));
+          }catch{res.statusCode=404;res.end('Not found');}});await new Promise(r=>server.listen(8765,'127.0.0.1',r));
+          const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          try{for(const [width,ua] of [[320,'iPhone'],[393,'iPhone'],[393,'Android 14'],[1440,'desktop']]){
+            rate=38;const c=await browser.newContext({viewport:{width,height:1000},userAgent:ua,permissions:['clipboard-read','clipboard-write']}),page=await c.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+            await page.route('https://cdn.jsdelivr.net/**',r=>r.abort());await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded'});await page.locator('#url').fill(A+'?currency=USD&lang=en');await page.locator('#result:not([hidden])').waitFor({timeout:15000});
+            assert.equal(await page.locator('#source').getAttribute('href'),A);const appLink=await page.locator('#bunjangApp').getAttribute('href');assert.equal(appLink,ua.startsWith('Android')?'intent://product?val=386933481#Intent;scheme=bunjang;package=kr.co.quicket;end':'bunjang://product?val=386933481');
+            assert.equal(await page.locator('#total').innerText(),'1,819');assert.equal(await page.locator('#originalSource').isVisible(),false);
+            await page.locator('#bunjangCopy').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),A);
+            await page.evaluate(()=>document.getElementById('bunjangApp').addEventListener('click',e=>e.preventDefault()));await page.locator('#bunjangApp').click();assert.ok((await page.locator('#bunjangOpenHelp').innerText()).includes('Safari／Chrome'));
+            rate=37.8;await page.locator('#refreshRate').click();await page.waitForFunction(()=>document.getElementById('rate').textContent==='37.8');assert.equal(await page.locator('#quoteRate').innerText(),'38');await page.locator('#reprice').click();await page.waitForFunction(()=>document.getElementById('quoteRate').textContent==='37.8');
+            assert.equal(await page.locator('#bunjangApp').getAttribute('href'),appLink);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
+            await page.locator('.product-head').screenshot({path:'evidence/bunjang-link-'+width+'-'+ua.replace(/ /g,'-')+'.png'});
+            report.browser.push({width,userAgent:ua,appLink,webLink:A,copyPassed:true,rateSynchronizationPreserved:true,noOverflow:true});await c.close();
+          }report.passed=true;console.log('CANDIDATE_LINK_UI_PASSED',JSON.stringify(report));}finally{fs.writeFileSync('evidence/bunjang-links-report.json',JSON.stringify(report,null,2));await browser.close();await new Promise(r=>server.close(r));}
+          JS
+      - name: Save tested source and release atomically
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp korea-quote/site/evidence/bunjang-links-report.json korea-quote/releases/candidate-bunjang-links-20261026-24.json
+          git add korea-quote/site/app.js korea-quote/site/index.html korea-quote/site/style.css korea-quote/site/lib/bunjang-links.mjs korea-quote/site/lib/quote-text.mjs korea-quote/site/lib/platforms.mjs korea-quote/site/package.json korea-quote/site/package-lock.json korea-quote/site/README.md korea-quote/site/tests/bunjang-links.test.mjs korea-quote/site/tests/auto-quote.test.mjs korea-quote/site/tests/run-tests.mjs korea-quote/scripts/release.mjs korea-quote/releases/site-20261026-24.json korea-quote/releases/candidate-bunjang-links-20261026-24.json
+          git commit -m 'Add tested Bunjang Korean app entry and clean same-product links (v24; deployment pending)'
+          git push origin HEAD:main
+          echo "TESTED_SOURCE_COMMIT=$(git rev-parse HEAD)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fatfatpig-bunjang-links-v24-candidate
+          path: |
+            korea-quote/site/evidence/
+            korea-quote/site/
+            korea-quote/releases/site-20261026-24.json
+            !korea-quote/site/node_modules/
+          include-hidden-files: true
+          retention-days: 14
