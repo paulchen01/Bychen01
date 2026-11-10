@@ -1,0 +1,45 @@
+name: Inspect description translation feasibility
+on:
+  push:
+    paths: ['.github/workflows/fatfatpig-description-inspect-20261110.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Public product and translation checks
+        run: |
+          mkdir -p inspection
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const report={checkedAt:new Date().toISOString(),productionModified:false,products:[]};
+          for(const id of ['423628860','429362102','405399188']){
+            try{const r=await fetch('https://api.bunjang.co.kr/api/pms/v1/products/'+id+'/detail/web',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)});const d=await r.json();const p=d?.data?.product;report.products.push({id,http:r.status,keys:p?Object.keys(p):[],title:p?.name,status:p?.saleStatus,price:p?.price,description:p?.description,code:d?.error?.code});if(p)fs.writeFileSync('inspection/product-'+id+'.json',JSON.stringify({data:{product:p}},null,2));}catch(e){report.products.push({id,error:e.message});}
+          }
+          const sample='미개봉 새상품입니다. 작은 얼룩이 있습니다. 가슴단면 52cm, 총장 70cm. 배송비 3,000원 별도입니다.';
+          try{const u=new URL('https://api.mymemory.translated.net/get');u.search=new URLSearchParams({q:sample,langpair:'ko|zh-TW',mt:'1'}).toString();const r=await fetch(u,{signal:AbortSignal.timeout(20000)});const d=await r.json();report.translation={source:sample,http:r.status,responseStatus:d.responseStatus,quotaFinished:d.quotaFinished,translatedText:d.responseData?.translatedText,details:d.responseDetails};}catch(e){report.translation={error:e.message};}
+          fs.writeFileSync('inspection/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+          JS
+      - name: Inspect public reference layout
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.1
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';import{chromium}from'playwright';
+          const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']});
+          try{const p=await b.newPage({viewport:{width:1440,height:1000}});await p.goto('https://www.veasly.com/tw/bunjang',{waitUntil:'domcontentloaded',timeout:25000});await p.waitForTimeout(3000);fs.writeFileSync('inspection/reference.txt',await p.locator('body').innerText());await p.screenshot({path:'inspection/reference.png',fullPage:true});console.log('REFERENCE', (await p.locator('body').innerText()).slice(0,6000));}catch(e){console.log('Reference unavailable',e.message);}finally{await b.close();}
+          JS
+      - name: Save inspected source and evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fatfatpig-description-source-inspection
+          path: |
+            korea-quote/site/
+            inspection/
+          retention-days: 7
