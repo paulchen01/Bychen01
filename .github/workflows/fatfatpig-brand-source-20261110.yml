@@ -1,0 +1,28 @@
+name: Export brand refresh baseline
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/fatfatpig-brand-source-20261110.yml']
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: f52519356125054fb4888c805d45ce26418517ab
+          persist-credentials: false
+          sparse-checkout: |
+            korea-quote/site
+            korea-quote/scripts
+            korea-quote/releases/site-20261026-24.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fatfatpig-brand-baseline-v24
+          path: |
+            korea-quote/site
+            korea-quote/scripts
+            korea-quote/releases/site-20261026-24.json
+          retention-days: 3
