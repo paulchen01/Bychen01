@@ -7,7 +7,9 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const excluded=new Set(['node_modules','.vercel','tests','evidence','.git']);
 const extensions=/\.(?:html|js|mjs|css|svg|txt|xml)$/;
-const prohibited=/(?:\bLINE\b|line\.me|lin\.ee|\bInstagram\b|instagram\.com|\bThreads\b|threads\.net|\bWhatsApp\b|wa\.me|\bTelegram\b|t\.me\/|\bWeChat\b|\bMessenger\b|facebook\.com|\bIG\b)/i;
+const prohibited=/(?:line\.me|lin\.ee|\bInstagram\b|instagram\.com|\bThreads\b|threads\.net|\bWhatsApp\b|wa\.me|\bTelegram\b|t\.me\/|\bWeChat\b|\bMessenger\b|facebook\.com|\bIG\b)/i;
+
+const uppercaseLine=/\bLINE\b/;
 
 function visit(directory){
   return fs.readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{
@@ -21,7 +23,7 @@ test('all deployed text assets omit external social and off-platform contact ref
   for(const file of visit(root)){
     const text=fs.readFileSync(file,'utf8');
     // Match LINE in uppercase only, to avoid CSS line-height or JS line helpers.
-    const match=text.match(prohibited);
+    const match=text.match(prohibited)||text.match(uppercaseLine);
     assert.equal(match,null, 'Contact or social wording found in '+path.relative(root,file)+': '+match?.[0]);
   }
 });
