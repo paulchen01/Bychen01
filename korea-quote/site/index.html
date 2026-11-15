@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f7f2e9">
+<meta name="theme-color" content="#fff8f3">
 <title>廢廢豬韓國報價｜韓國商品查價・台幣估算</title>
 <meta name="description" content="貼上韓國商品網址，自動查詢公開韓幣售價，依本日匯率、已知運費與費用規則估算台幣。支援手動計算、報價備註與複製明細。">
 <meta property="og:title" content="廢廢豬韓國報價｜韓國商品查價・台幣估算">
 <meta property="og:description" content="貼上韓國商品網址，自動查詢公開韓幣售價，依本日匯率、已知運費與費用規則估算台幣。支援手動計算、報價備註與複製明細。">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css?v=20261026-24">
+<link rel="stylesheet" href="/brand-refresh.css?v=20261116-1">
 <link rel="preload" href="/assets/quote-mark.svg" as="image">
 <link rel="canonical" href="https://korea-quote-0908.vercel.app/">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
@@ -29,15 +30,23 @@
 </head>
 <body>
 <a class="skip" href="#quote-form">直接開始估價</a><div class="page-wrap">
-<header class="site-header"><a class="brand" href="/" aria-label="廢廢豬韓國報價首頁"><img class="brand-pig" src="/assets/quote-mark.svg" width="64" height="59" alt=""><span><b>廢廢豬</b><small>fat fat pig · 韓國報價</small></span></a><nav aria-label="主要選單"><a class="nav-quote" href="#quote-form">商品估價</a><a class="nav-guide" href="/bunjang-guide/">查價指南 <span aria-hidden="true">↗</span></a></nav></header><main>
+<header class="site-header"><a class="brand" href="/" aria-label="廢廢豬韓國報價首頁"><img class="brand-pig" src="/assets/pig-mascot.svg" width="64" height="59" alt=""><span><b>廢廢豬</b><small>fat fat pig · 韓國代購報價</small></span></a><nav aria-label="主要選單"><a class="nav-quote" href="#quote-form">商品估價</a><a class="nav-guide" href="/bunjang-guide/">查價指南 <span aria-hidden="true">↗</span></a></nav></header><main>
 <section class="hero" aria-labelledby="hero-title"><div class="hero-copy">
-<p class="eyebrow"><span></span> FAT FAT PIG · KOREA QUOTE</p>
-<h1 id="hero-title">韓國好物，慢慢挑。<br>心動的價格，自己算。</h1>
-<p class="intro">貼上韓國商品連結，查詢公開售價，<br class="desktop-br">換算台幣並保存清楚的報價明細。</p>
+<p class="eyebrow"><span></span> FAT FAT PIG · KOREAN SHOPPING</p>
+<h1 id="hero-title">韓國好物，慢慢挑。<br><em>心動價格，先算清楚。</em></h1>
+<p class="intro">從韓國選物到 K-POP 周邊，<br class="desktop-br">貼上商品連結，先看清楚台幣預算與已知費用。</p>
+<div class="hero-reassurance" aria-label="報價服務特色"><span>♡ 費用透明</span><span>♡ 台幣試算</span><span>♡ 明細可複製</span></div>
 </div>
 <div class="brand-art">
-<span class="art-caption">FIND YOUR PRICE, AT YOUR PACE</span><img class="hero-mark" src="/assets/quote-mark.svg" width="240" height="220" alt="微笑小豬圖案"><span class="art-wordmark">廢廢豬 <small>韓國報價</small></span><span class="art-sticker">喜歡的商品，<br>先算清楚預算。</span>
+<span class="art-caption">FAT FAT PIG · YOUR KOREA FINDS</span><img class="hero-mark" src="/assets/pig-mascot.svg" width="240" height="220" alt="廢廢豬趴在綠色軟墊上的插畫"><span class="art-wordmark">廢廢豬 <small>韓國代購 · fat fat pig</small></span><span class="art-sticker">把心動的好物<br>變成清楚預算 ♡</span>
 </div></section>
+<section class="service-highlights" aria-label="韓國代購選物類別">
+  <div class="service-item"><span class="service-icon" aria-hidden="true">🛍️</span><div><b>韓國網站代購</b><small>熱門平台好物</small></div></div>
+  <div class="service-item"><span class="service-icon" aria-hidden="true">🎤</span><div><b>K-POP 周邊</b><small>應援收藏選物</small></div></div>
+  <div class="service-item"><span class="service-icon" aria-hidden="true">💌</span><div><b>小卡・專輯</b><small>心動收藏預算</small></div></div>
+  <div class="service-item"><span class="service-icon" aria-hidden="true">📦</span><div><b>韓國選物</b><small>服飾與生活好物</small></div></div>
+</section>
+<section class="quote-section-heading" aria-labelledby="quote-start-heading"><p class="eyebrow">SIMPLE &amp; CLEAR QUOTE</p><h2 id="quote-start-heading">貼上連結，看看台幣多少</h2><p>查詢公開售價、估算已知費用，沒有取得的金額會明確標示。</p></section>
 <div class="quote-layout" id="quote-form" tabindex="-1">
 <section class="input-column" aria-labelledby="input-title"><div class="card input-card">
 <h3 id="input-title">
@@ -84,7 +93,7 @@
 <span class="result-status" id="resultStatus">WAITING FOR YOUR FIND</span>
 </div>
 <div id="empty" class="empty-state">
-<div class="empty-pig"><img src="/assets/quote-mark.svg" width="120" height="110" alt="等待報價的小豬"></div>
+<div class="empty-pig"><img src="/assets/pig-mascot.svg" width="120" height="110" alt="等待報價的小豬"></div>
 <h4>你慢慢挑，價格慢慢看。</h4>
 <p>貼上喜歡的商品連結，<br>讀到售價就先估；已知運費再一起算。</p>
 <span class="empty-note">算好之後，一鍵複製報價明細。</span>
