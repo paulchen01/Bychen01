@@ -1,5 +1,5 @@
 /**
- * Interaction tests execute the unmodified app.js ES module against the real index.html.
+ * Interaction tests execute the production app.js ES module against the real index.html.
  * Uses the project's jsdom devDependency when installed. Alternatively, install test-only
  * DOM tooling outside the release, then run:
  *   npm install --prefix /tmp/quote-ui-tools --ignore-scripts --no-audit --no-fund jsdom@30.1.3
@@ -275,7 +275,7 @@ test('the existing Naver short-link behavior still accepts its resolved product'
 
 test('the page advertises automatic lookup and references the new release assets',()=>{
   assert.ok(HTML.includes('貼上完整商品連結，即可自動查價。'));
-  assert.ok(HTML.includes('/app.js?v=20261026-24'));
+  assert.ok(HTML.includes('/app.js?v=20261116-2'));
   assert.ok(HTML.includes('/smartstore-beta.js?v=20261026-24'));
   assert.ok(HTML.includes('/style.css?v=20261026-24'));
   assert.ok(HTML.includes('<span id="version">2026-10-26.24</span>'));
@@ -462,4 +462,20 @@ test('other platforms keep their own product links',async t=>{
 test('Korean link copy has a selectable clipboard fallback',async t=>{
  const h=await harness(t,'',{clipboardAvailable:false});h.enter(A);await h.advance(600);h.requests[0].respond(quoted());await flush();
  h.$('bunjangCopy').click();await flush();assert.equal(h.$('copyDialog').open,true);assert.equal(h.$('copyText').value,A);assert.equal(h.$('total').textContent,'393');
+});
+
+
+test('link-free quote copy preserves price and warnings without embedding an outbound product URL',async t=>{
+  const h=await harness(t);
+  h.enter(A);await h.advance(600);
+  h.requests[0].respond(quoted());await flush();
+  h.$('requestNote').value='白色款';h.event('requestNote','input');
+  h.$('copyNoLinks').click();await flush();
+  assert.equal(h.copied.length,1);
+  assert.match(h.copied[0],/預估台幣：NT\$393/);
+  assert.match(h.copied[0],/報價備註：白色款/);
+  assert.doesNotMatch(h.copied[0],/https?:\/\/|www\.|商品連結：|原始連結：/);
+  assert.equal(h.$('toast').textContent,'已複製不含站外網址的報價內容。');
+  h.$('copy').click();await flush();
+  assert.match(h.copied[1],/商品連結：https:\/\//);
 });

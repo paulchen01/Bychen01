@@ -11,6 +11,15 @@ const AUTO_QUOTE_DELAY=600;
 const scrollTo=el=>el.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
 function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,2800);}
 function message(){return current?(current.q?quoteText(current.p,current.q,{manual:current.manual,note:$('requestNote').value}):pendingProductText(current.p,{note:$('requestNote').value})):'';}
+// Suitable for copying into a marketplace chat: omit source URLs, retain all amounts
+// and unknown-fee warnings. This reduces off-platform link risk; it does not
+// certify that arbitrary product names or user-supplied notes meet site rules.
+function linkFreeMessage(){
+  return message().split(/\r?\n/)
+    .filter(line=>!/^\s*(?:商品連結|原始連結)：/.test(line))
+    .map(line=>line.replace(/(?:https?:\/\/|www\.)[^\s，,）)]+/gi,'［已省略站外網址］'))
+    .join('\n');
+}
 function updateReport(){if(current)$('quotePreview').textContent=message();}
 function updateBar(){if(current){$('barHint').textContent=current.q?(current.q.shippingExcluded?'商品粗估・未含韓國運費':'預估代購金額'):'商品資訊尚待確認';$('barPrice').textContent=current.q?'NT$'+fmt(current.q.totalTwd):'尚未產生報價';$('barAction').textContent=current.q?'複製報價':'複製商品資訊';}else{$('barHint').textContent='貼上商品網址，即可試算';$('barPrice').textContent='韓幣 → 台幣';$('barAction').textContent='開始報價';}}
 function detected(){let t;try{t=normalize($('url').value);}catch{}$('detected').hidden=!t;if(t)$('detected').textContent='✓ 已辨識 '+t.platformName+(t.market==='global'?' · 將查找韓國版原價':'')+(t.kind==='short'?' · 分享短網址':t.kind==='link'?' · 將確認商品連結':t.kind==='cart'?' · 購物車請提供個別商品':t.kind==='page'?' · 請提供單一商品頁':'');return t;}
@@ -131,6 +140,7 @@ $('form').onsubmit=async e=>{
 };
 $('manual').onsubmit=async e=>{e.preventDefault();const token=reset();busy(true);try{const rate=await syncRate();if(token!==serial)return;const q=estimateFromAmounts($('p').value,$('s').value,$('pf').value,rate.exchangeRate);show({title:'自訂商品',fetchedAt:new Date().toISOString()},{...q,rateCheckedAt:rate.checkedAt},true);}catch(error){if(token===serial)err(error);}finally{if(token===serial)busy(false);}};
 async function copyText(text,successMessage){try{await navigator.clipboard.writeText(text);toast(successMessage||(current?.q?'已複製報價內容。':'已複製商品資訊。'));return true;}catch{$('copyText').value=text;if(!$('copyDialog').open)$('copyDialog').showModal();$('copyText').select();return false;}}
+$('copyNoLinks').onclick=()=>current&&copyText(linkFreeMessage(),'已複製不含站外網址的報價內容。');
 $('copy').onclick=()=>current&&copyText(message());
 $('bunjangCopy').onclick=()=>{const links=current&&bunjangLinks(current.p,navigator.userAgent);if(links)return copyText(links.web,'已複製韓國版商品連結。');};
 // Native navigation is a direct user click. Never use delayed web/USD redirects.

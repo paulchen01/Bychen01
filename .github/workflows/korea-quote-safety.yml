@@ -1,0 +1,28 @@
+name: Korea quote test and no-contact guard
+on:
+  pull_request:
+    paths:
+      - 'korea-quote/site/**'
+      - '.github/workflows/korea-quote-safety.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'korea-quote/site/**'
+      - '.github/workflows/korea-quote-safety.yml'
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: korea-quote/site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: korea-quote/site/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
