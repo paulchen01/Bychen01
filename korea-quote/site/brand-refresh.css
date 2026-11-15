@@ -254,3 +254,9 @@ footer{border-top:1px solid #ead8d4;margin-top:20px;padding-bottom:35px}
 @media(prefers-reduced-motion:reduce){
   .site-header nav a,.service-item{transition:none}
 }
+/* Keep a no-link quote action prominent when content is copied into platform chat. */
+.quote-copy-actions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:15px}
+.quote-copy-actions .button{width:100%;text-align:center;white-space:normal;min-height:48px}
+.quote-copy-actions .copy-action{background:#eff3ea;color:#4f6952;border:1px solid #d6e2d2;box-shadow:none}
+.quote-copy-actions .no-links-copy{background:#af5c54;color:#fff}
+.copy-safety-note{font-size:12px;line-height:1.65;color:#785e56;background:#fff5eb;border:1px solid #f1decf;border-radius:13px;padding:10px 12px;margin:11px 0}
