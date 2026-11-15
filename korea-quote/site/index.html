@@ -198,7 +198,7 @@
 </section><div class="quote-fields">
 <label for="requestNote">報價備註 <span>（選填）</span></label><input id="requestNote" maxlength="240" placeholder="例如：狐狸款、尺寸 M、數量 1"><p class="small muted">備註會附在複製的報價中；不會改變金額或自動增加件數。</p>
 </div>
-<button id="copy" type="button" class="button primary copy-action">複製報價明細</button><details class="message-details"><summary>查看完整報價明細</summary><pre id="quotePreview"></pre></details><p id="time" class="timestamp"></p>
+<div class="quote-copy-actions"><button id="copyNoLinks" type="button" class="button primary no-links-copy">複製不含站外網址的報價</button><button id="copy" type="button" class="button secondary copy-action">複製完整報價（內部留存）</button></div><p class="copy-safety-note">要貼到蝦皮聊聊請選「不含站外網址」版本；仍須確認商品名稱和備註沒有第三方聯絡資訊。完整報價可能包含原商品網址，僅供自行留存核對。</p><details class="message-details"><summary>查看完整報價明細</summary><pre id="quotePreview"></pre></details><p id="time" class="timestamp"></p>
 <p class="product-warning" id="discountNotice" hidden=""></p>
 <p class="disclaimer">報價依查詢當下的公開售價及已知費用估算；未取得的費用會標示未計入。款式、數量、庫存及結帳金額請以原商品頁為準。</p>
 </div></section>
@@ -234,6 +234,6 @@
 </div>
 <div id="toast" class="toast" role="status" hidden=""></div>
 <dialog id="copyDialog"><button class="dialog-close" data-close="copyDialog" aria-label="關閉">×</button><h3>長按文字即可複製</h3>
-<textarea id="copyText" readonly aria-label="可複製的報價明細"></textarea><button class="button primary" data-close="copyDialog">完成</button></dialog><script type="module" src="/app.js?v=20261026-24"></script><script src="/smartstore-beta.js?v=20261026-24" defer></script>
+<textarea id="copyText" readonly aria-label="可複製的報價明細"></textarea><button class="button primary" data-close="copyDialog">完成</button></dialog><script type="module" src="/app.js?v=20261116-2"></script><script src="/smartstore-beta.js?v=20261026-24" defer></script>
 </body>
 </html>
