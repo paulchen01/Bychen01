@@ -1,0 +1,24 @@
+{
+  "version": "2026-11-16.brand-1",
+  "basedOn": "2026-10-26.24",
+  "sourceSnapshot": "releases/site-20261026-24.json",
+  "appVersion": "2026-10-26.24",
+  "pricingVersion": "2026-09-15.5",
+  "designScope": "pastel UI, illustration, no-link copy, social contact audit",
+  "changed": {
+    "index.html": "b0ddda401261ae49e311d3c37efd747e01584076",
+    "app.js": "88860c9aca1abd09af4440bd60993d21e65702e5"
+  },
+  "added": {
+    "brand-refresh.css": "5db1fc4640afe04fc7b8aa7eb1ad16b33a44cdf2",
+    "assets/pig-mascot.svg": "81233b029b521aaeb53ab962c4174a29ff524b56"
+  },
+  "preserved": [
+    "lib/pricing.mjs",
+    "lib/estimate.mjs",
+    "lib/quote-text.mjs",
+    "api/quote.js",
+    "api/rate.js"
+  ],
+  "publishedToProduction": false
+}
