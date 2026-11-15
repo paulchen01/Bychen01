@@ -35,5 +35,5 @@ test('brand-only redesign preserves real quote controls and truthful pricing pre
   }
   assert.match(html,/brand-refresh\.css\?v=20261116-1/);
   assert.match(html,/assets\/pig-mascot\.svg/);
-  assert.match(html,/未取得的金額會明確標示/);
+  assert.match(html,/沒有取得的金額會明確標示/);
 });
