@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="pigTitle pigDesc">
+<title id="pigTitle">廢廢豬韓國代購品牌小豬</title>
+<desc id="pigDesc">一隻米色、粉紅臉頰的小豬，慵懶地趴在鼠尾草綠的軟墊上</desc>
+<g stroke="#9a7f70" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M142 199c-8-23-3-41 9-48m-10 29c-24-9-28-30-15-33" fill="none"/>
+  <path d="M254 175c-46-30-91-16-127 13-12 10-28 18-52 21-15 2-21 10-18 19 6 15 26 27 52 32 20 11 43 10 58 1 16 14 37 12 50-7l61-11" fill="#f5e8cd"/>
+  <path d="M205 238c-20-15-42-7-47 12-4 19 13 27 34 17" fill="#f5e8cd"/>
+  <path d="M204 290c25-45 75-64 139-69 61-6 129 18 157 58 12 16 24 41 15 49-6 6-18 3-29-3-29 21-67 39-107 44-25 4-47 3-61 0-9 18-25 19-36 2-45 1-78-9-107-28-11-7-10-16 1-27 9-10 18-19 28-26Z" fill="#b9c3aa"/>
+  <path d="M242 99c-18-29-18-50-4-55 19-7 43 8 56 25m114 3c21-28 48-37 59-26 11 12 4 35-9 55" fill="#f5e8cd"/>
+  <path d="M260 77c34-29 91-39 140-22 45 16 69 53 84 106 9 29 4 58-18 76-27 21-76 34-132 35-65 2-107-10-121-34-16-26-5-68 8-96 10-24 24-46 39-65Z" fill="#f5e8cd"/>
+</g>
+<ellipse cx="300" cy="187" rx="21" ry="22" fill="#efb5a9" opacity=".93"/>
+<ellipse cx="449" cy="160" rx="21" ry="22" fill="#efb5a9" opacity=".93"/>
+<path d="M328 135q16 1 27-8m42-10q12 2 23-4" fill="none" stroke="#9a7f70" stroke-width="8" stroke-linecap="round"/>
+<g stroke="#9a7f70" stroke-width="7">
+  <ellipse cx="376" cy="170" rx="31" ry="23" fill="#ecb0a3"/>
+  <ellipse cx="366" cy="170" rx="4" ry="6" fill="#9a7f70" stroke="none"/>
+  <ellipse cx="387" cy="170" rx="4" ry="6" fill="#9a7f70" stroke="none"/>
+</g>
+<path d="M536 122c8-11 20-13 28-5 8 9 3 21-8 30-10-9-26-15-20-25Z" fill="#f4b2b3" opacity=".85"/>
+<g fill="none" stroke="#e6b0a6" stroke-width="5" stroke-linecap="round" opacity=".6">
+  <path d="M84 122l-12-14m24-3-3-16"/>
+  <path d="M529 196l14-9m-3 25 16-3"/>
+</g>
+</svg>
